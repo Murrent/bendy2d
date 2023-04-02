@@ -1,12 +1,21 @@
-use vector2d::Vector2D;
-use crate::physics::particle::Particle;
 use crate::physics::circle::Circle;
+use crate::physics::particle::Particle;
+use vector2d::Vector2D;
+use crate::physics::link::ParticleLink;
+
+pub enum ColliderType {
+    Particle,
+    Circle,
+}
+
+// TODO: Refactor solver to have multiple solvers, one for each type of collider (particle, circle, etc) and then have a master solver that calls each of the solvers
 
 pub struct Solver {
     pub gravity: Vector2D<f32>,
     pub bounds: Bounds,
     pub bounds_active: bool,
     particles: Vec<Particle>,
+    particle_links: Vec<ParticleLink>,
     circles: Vec<Circle>,
     sub_steps: u16,
     sub_steps_multiplier: f32,
@@ -17,6 +26,7 @@ impl Solver {
         Self {
             gravity: Vector2D::new(0.0, 98.2),
             particles: Vec::new(),
+            particle_links: Vec::new(),
             circles: Vec::new(),
             bounds: Bounds {
                 pos: Vector2D { x: 0.0, y: 0.0 },
@@ -32,16 +42,28 @@ impl Solver {
         self.particles.push(Particle::new(pos));
     }
 
+    pub fn add_particle_link(&mut self, link: ParticleLink) {
+        self.particle_links.push(link);
+    }
+
+    pub fn get_particle_len(&self) -> usize {
+        self.particles.len()
+    }
+
     pub fn add_circle(&mut self, circle: Circle) {
         self.circles.push(circle);
     }
 
-    pub fn get_particles(&mut self) -> &mut Vec<Particle> {
-        &mut self.particles
+    pub fn get_particles(&self) -> &Vec<Particle> {
+        &self.particles
     }
 
-    pub fn get_circles(&mut self) -> &mut Vec<Circle> {
-        &mut self.circles
+    pub fn get_particle_links(&self) -> &Vec<ParticleLink> {
+        &self.particle_links
+    }
+
+    pub fn get_circles(&self) -> &Vec<Circle> {
+        &self.circles
     }
 
     pub fn update(&mut self, dt: &f32) {
@@ -49,6 +71,10 @@ impl Solver {
         let delta = *dt * self.sub_steps_multiplier;
         for i in 0..self.sub_steps {
             self.apply_gravity(&delta);
+            for link in self.particle_links.iter_mut() {
+                link.solve(&mut self.particles);
+            }
+            self.solve_dynamic_collisions();
             self.solve_boundary_collisions();
             self.update_positions(&delta);
         }
@@ -81,16 +107,17 @@ impl Solver {
         }
     }
 
-    // TODO: Fix brute force
     fn solve_dynamic_collisions(&mut self) {
-        /*let length = self.circles.len();
+        let length = self.circles.len();
         for i in 0..length {
-            let circle_i = &mut self.circles[i];
-            for j in i..length {
-                let circle_j = &mut self.circles[j];
-                circle_circle(circle_i, circle_j);
+            let start_index = i + 1;
+            for j in start_index..length {
+                let split = self.circles.split_at_mut(start_index);
+                let circle_i = &mut split.0[i];
+                let circle_j = &mut split.1[j - start_index];
+                circle_i.solve_circle(circle_j);
             }
-        }*/
+        }
     }
 }
 
@@ -112,21 +139,4 @@ fn particle_bounds(point: &mut Particle, bounds: &Bounds) {
     } else if point.pos.y > bounds.pos.y + bounds.size.y {
         point.pos.y = bounds.pos.y + bounds.size.y;
     }
-}
-
-fn circle_bounds(circle: &mut Circle, bounds: &Bounds) {
-    if circle.point.pos.x < bounds.pos.x + circle.radius {
-        circle.point.pos.x = bounds.pos.x + circle.radius;
-    } else if circle.point.pos.x > bounds.pos.x + bounds.size.x - circle.radius {
-        circle.point.pos.x = bounds.pos.x + bounds.size.x - circle.radius;
-    }
-    if circle.point.pos.y < bounds.pos.y + circle.radius {
-        circle.point.pos.y = bounds.pos.y + circle.radius;
-    } else if circle.point.pos.y > bounds.pos.y + bounds.size.y - circle.radius {
-        circle.point.pos.y = bounds.pos.y + bounds.size.y - circle.radius;
-    }
-}
-
-fn circle_circle(circle1: &mut Circle, circle2: &mut Circle) {
-
 }
