@@ -1,7 +1,7 @@
 use crate::physics::circle::Circle;
+use crate::physics::link::ParticleLink;
 use crate::physics::particle::Particle;
 use vector2d::Vector2D;
-use crate::physics::link::ParticleLink;
 
 pub enum ColliderType {
     Particle,

@@ -30,7 +30,5 @@ pub struct CircleLink {
 }
 
 impl CircleLink {
-    pub fn solve(&mut self, circle: &mut Vec<Circle>) {
-
-    }
+    pub fn solve(&mut self, circle: &mut Vec<Circle>) {}
 }
