@@ -24,7 +24,10 @@ impl Particle {
     }
 
     pub fn add_force(&mut self, force_x: &f32, force_y: &f32) {
-        self.acc += Vector2D { x: *force_x, y: *force_y };
+        self.acc += Vector2D {
+            x: *force_x,
+            y: *force_y,
+        };
     }
 
     pub fn add_force_v2(&mut self, force: &Vector2D<f32>) {
