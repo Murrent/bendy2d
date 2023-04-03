@@ -6,9 +6,8 @@ use vector2d::Vector2D;
 pub enum ColliderType {
     Particle,
     Circle,
+    Polygon,
 }
-
-// TODO: Refactor solver to have multiple solvers, one for each type of collider (particle, circle, etc) and then have a master solver that calls each of the solvers
 
 pub struct Solver {
     pub gravity: Vector2D<f32>,
@@ -93,12 +92,7 @@ impl Solver {
         let delta = *dt * self.sub_steps_multiplier;
         for _ in 0..self.sub_steps {
             self.apply_gravity(&delta);
-            for link in self.particle_links.iter_mut() {
-                link.solve(&mut self.particles);
-            }
-            for link in self.circle_links.iter_mut() {
-                link.solve(&mut self.circles);
-            }
+            self.apply_links();
             self.solve_dynamic_collisions();
             self.solve_boundary_collisions();
             self.update_positions(&delta);
@@ -123,9 +117,18 @@ impl Solver {
         }
     }
 
+    fn apply_links(&mut self) {
+        for link in self.particle_links.iter_mut() {
+            link.solve(&mut self.particles);
+        }
+        for link in self.circle_links.iter_mut() {
+            link.solve(&mut self.circles);
+        }
+    }
+
     fn solve_boundary_collisions(&mut self) {
         for particle in self.particles.iter_mut() {
-            particle_bounds(particle, &self.bounds);
+            particle.particle_bounds(&self.bounds);
         }
         for circle in self.circles.iter_mut() {
             circle.solve_bounds(&self.bounds);
@@ -149,19 +152,4 @@ impl Solver {
 pub struct Bounds {
     pub pos: Vector2D<f32>,
     pub size: Vector2D<f32>,
-}
-
-// Collision resolvers
-
-fn particle_bounds(point: &mut Particle, bounds: &Bounds) {
-    if point.pos.x < bounds.pos.x {
-        point.pos.x = bounds.pos.x;
-    } else if point.pos.x > bounds.pos.x + bounds.size.x {
-        point.pos.x = bounds.pos.x + bounds.size.x;
-    }
-    if point.pos.y < bounds.pos.y {
-        point.pos.y = bounds.pos.y;
-    } else if point.pos.y > bounds.pos.y + bounds.size.y {
-        point.pos.y = bounds.pos.y + bounds.size.y;
-    }
 }
