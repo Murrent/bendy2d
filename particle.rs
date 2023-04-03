@@ -1,3 +1,4 @@
+use crate::physics::solver::Bounds;
 use vector2d::Vector2D;
 
 #[derive(Debug, Copy, Clone)]
@@ -21,6 +22,19 @@ impl Particle {
         self.prev_pos = self.pos;
         self.pos = self.pos + vel + self.acc * *dt * *dt;
         self.acc = Vector2D { x: 0.0, y: 0.0 };
+    }
+
+    pub fn particle_bounds(&mut self, bounds: &Bounds) {
+        if self.pos.x < bounds.pos.x {
+            self.pos.x = bounds.pos.x;
+        } else if self.pos.x > bounds.pos.x + bounds.size.x {
+            self.pos.x = bounds.pos.x + bounds.size.x;
+        }
+        if self.pos.y < bounds.pos.y {
+            self.pos.y = bounds.pos.y;
+        } else if self.pos.y > bounds.pos.y + bounds.size.y {
+            self.pos.y = bounds.pos.y + bounds.size.y;
+        }
     }
 
     pub fn add_force(&mut self, force_x: &f32, force_y: &f32) {
