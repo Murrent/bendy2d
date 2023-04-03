@@ -1,5 +1,5 @@
 use crate::physics::circle::Circle;
-use crate::physics::link::ParticleLink;
+use crate::physics::link::{CircleLink, ParticleLink};
 use crate::physics::particle::Particle;
 use vector2d::Vector2D;
 
@@ -17,6 +17,7 @@ pub struct Solver {
     particles: Vec<Particle>,
     particle_links: Vec<ParticleLink>,
     circles: Vec<Circle>,
+    circle_links: Vec<CircleLink>,
     sub_steps: u16,
     sub_steps_multiplier: f32,
 }
@@ -28,6 +29,7 @@ impl Solver {
             particles: Vec::new(),
             particle_links: Vec::new(),
             circles: Vec::new(),
+            circle_links: Vec::new(),
             bounds: Bounds {
                 pos: Vector2D { x: 0.0, y: 0.0 },
                 size: Vector2D { x: 100.0, y: 100.0 },
@@ -54,6 +56,14 @@ impl Solver {
         self.circles.push(circle);
     }
 
+    pub fn add_circle_link(&mut self, link: CircleLink) {
+        self.circle_links.push(link);
+    }
+
+    pub fn get_circles_len(&self) -> usize {
+        self.circles.len()
+    }
+
     pub fn get_particles(&self) -> &Vec<Particle> {
         &self.particles
     }
@@ -66,8 +76,16 @@ impl Solver {
         &self.particle_links
     }
 
+    pub fn get_circle_links(&self) -> &Vec<CircleLink> {
+        &self.circle_links
+    }
+
     pub fn get_circles(&self) -> &Vec<Circle> {
         &self.circles
+    }
+
+    pub fn get_circle(&self, index: usize) -> Option<&Circle> {
+        self.circles.get(index)
     }
 
     pub fn update(&mut self, dt: &f32) {
@@ -77,6 +95,9 @@ impl Solver {
             self.apply_gravity(&delta);
             for link in self.particle_links.iter_mut() {
                 link.solve(&mut self.particles);
+            }
+            for link in self.circle_links.iter_mut() {
+                link.solve(&mut self.circles);
             }
             self.solve_dynamic_collisions();
             self.solve_boundary_collisions();
