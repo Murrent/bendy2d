@@ -33,7 +33,7 @@ impl Solver {
                 size: Vector2D { x: 100.0, y: 100.0 },
             },
             bounds_active: true,
-            sub_steps: 1,
+            sub_steps: 8,
             sub_steps_multiplier: 0.0,
         }
     }
@@ -58,6 +58,10 @@ impl Solver {
         &self.particles
     }
 
+    pub fn get_particle(&self, index: usize) -> Option<&Particle> {
+        self.particles.get(index)
+    }
+
     pub fn get_particle_links(&self) -> &Vec<ParticleLink> {
         &self.particle_links
     }
@@ -69,7 +73,7 @@ impl Solver {
     pub fn update(&mut self, dt: &f32) {
         self.sub_steps_multiplier = 1.0 / self.sub_steps as f32;
         let delta = *dt * self.sub_steps_multiplier;
-        for i in 0..self.sub_steps {
+        for _ in 0..self.sub_steps {
             self.apply_gravity(&delta);
             for link in self.particle_links.iter_mut() {
                 link.solve(&mut self.particles);
