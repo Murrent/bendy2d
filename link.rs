@@ -30,5 +30,17 @@ pub struct CircleLink {
 }
 
 impl CircleLink {
-    pub fn solve(&mut self, circle: &mut Vec<Circle>) {}
+    pub fn solve(&mut self, circles: &mut Vec<Circle>) {
+        let split = circles.split_at_mut(self.link.particle_b);
+        let circle_a = &mut split.0[self.link.particle_a];
+        let circle_b = &mut split.1[0];
+        let dist_vec = circle_a.point.pos - circle_b.point.pos;
+        let dist = dist_vec.length();
+        let normal = dist_vec.normalise();
+        let c_a_rad_sqr = circle_a.radius * circle_a.radius;
+        let c_b_rad_sqr = circle_b.radius * circle_b.radius;
+        let scale = 1.0 / (c_a_rad_sqr + c_b_rad_sqr);
+        circle_a.point.pos -= normal * (dist - self.link.target_distance) * scale * c_b_rad_sqr;
+        circle_b.point.pos += normal * (dist - self.link.target_distance) * scale * c_a_rad_sqr;
+    }
 }
