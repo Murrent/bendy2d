@@ -139,9 +139,9 @@ impl Solver {
         let length = self.circles.len();
         for i in 0..length {
             let start_index = i + 1;
+            let split = self.circles.split_at_mut(start_index);
+            let circle_i = &mut split.0[i];
             for j in start_index..length {
-                let split = self.circles.split_at_mut(start_index);
-                let circle_i = &mut split.0[i];
                 let circle_j = &mut split.1[j - start_index];
                 circle_i.solve_circle(circle_j);
             }
