@@ -9,6 +9,13 @@ pub enum ColliderType {
     Polygon,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct Bounds {
+    pub pos: Vector2D<f32>,
+    pub size: Vector2D<f32>,
+}
+
+#[derive(Debug, Clone)]
 pub struct Solver {
     pub gravity: Vector2D<f32>,
     pub bounds: Bounds,
@@ -141,10 +148,4 @@ impl Solver {
             }
         }
     }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct Bounds {
-    pub pos: Vector2D<f32>,
-    pub size: Vector2D<f32>,
 }
