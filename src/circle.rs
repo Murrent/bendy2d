@@ -8,7 +8,7 @@ pub struct Circle {
 }
 
 impl Circle {
-    pub fn solve_bounds(&mut self, bounds: &Bounds) {
+    pub fn solve_bounds(&mut self, bounds: Bounds) {
         if self.point.pos.x < bounds.pos.x + self.radius {
             self.point.pos.x = bounds.pos.x + self.radius;
         } else if self.point.pos.x > bounds.pos.x + bounds.size.x - self.radius {
