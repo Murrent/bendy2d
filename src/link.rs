@@ -8,6 +8,7 @@ pub struct Link {
     pub target_distance: f32,
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct ParticleLink {
     pub link: Link,
 }
@@ -25,6 +26,7 @@ impl ParticleLink {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct CircleLink {
     pub link: Link,
 }
