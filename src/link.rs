@@ -1,5 +1,5 @@
-use crate::physics::circle::Circle;
-use crate::physics::particle::Particle;
+use crate::circle::Circle;
+use crate::particle::Particle;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Link {

@@ -1,4 +1,4 @@
-use crate::physics::solver::Bounds;
+use crate::solver::Bounds;
 use vector2d::Vector2D;
 
 #[derive(Debug, Copy, Clone)]

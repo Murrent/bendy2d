@@ -1,5 +1,5 @@
-use crate::physics::particle::Particle;
-use crate::physics::solver::Bounds;
+use crate::particle::Particle;
+use crate::solver::Bounds;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Circle {
