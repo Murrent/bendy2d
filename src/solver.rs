@@ -9,6 +9,13 @@ pub enum ColliderType {
     Polygon,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct Bounds {
+    pub pos: Vector2D<f32>,
+    pub size: Vector2D<f32>,
+}
+
+#[derive(Debug, Clone)]
 pub struct Solver {
     pub gravity: Vector2D<f32>,
     pub bounds: Bounds,
@@ -39,67 +46,61 @@ impl Solver {
         }
     }
 
-    pub fn add_particle(&mut self, pos: &Vector2D<f32>) {
+    pub fn add_particle(&mut self, pos: Vector2D<f32>) {
         self.particles.push(Particle::new(pos));
+    }
+    pub fn add_circle(&mut self, circle: Circle) {
+        self.circles.push(circle);
     }
 
     pub fn add_particle_link(&mut self, link: ParticleLink) {
         self.particle_links.push(link);
     }
-
-    pub fn get_particle_len(&self) -> usize {
-        self.particles.len()
-    }
-
-    pub fn add_circle(&mut self, circle: Circle) {
-        self.circles.push(circle);
-    }
-
     pub fn add_circle_link(&mut self, link: CircleLink) {
         self.circle_links.push(link);
     }
 
+    pub fn get_particle_len(&self) -> usize {
+        self.particles.len()
+    }
     pub fn get_circles_len(&self) -> usize {
         self.circles.len()
-    }
-
-    pub fn get_particles(&self) -> &Vec<Particle> {
-        &self.particles
-    }
-
-    pub fn get_particle(&self, index: usize) -> Option<&Particle> {
-        self.particles.get(index)
     }
 
     pub fn get_particle_links(&self) -> &Vec<ParticleLink> {
         &self.particle_links
     }
-
     pub fn get_circle_links(&self) -> &Vec<CircleLink> {
         &self.circle_links
     }
 
+    pub fn get_particles(&self) -> &Vec<Particle> {
+        &self.particles
+    }
     pub fn get_circles(&self) -> &Vec<Circle> {
         &self.circles
     }
 
+    pub fn get_particle(&self, index: usize) -> Option<&Particle> {
+        self.particles.get(index)
+    }
     pub fn get_circle(&self, index: usize) -> Option<&Circle> {
         self.circles.get(index)
     }
 
-    pub fn update(&mut self, dt: &f32) {
+    pub fn update(&mut self, dt: f32) {
         self.sub_steps_multiplier = 1.0 / self.sub_steps as f32;
-        let delta = *dt * self.sub_steps_multiplier;
+        let delta = dt * self.sub_steps_multiplier;
         for _ in 0..self.sub_steps {
-            self.apply_gravity(&delta);
+            self.apply_gravity(delta);
             self.apply_links();
             self.solve_dynamic_collisions();
             self.solve_boundary_collisions();
-            self.update_positions(&delta);
+            self.update_positions(delta);
         }
     }
 
-    fn update_positions(&mut self, dt: &f32) {
+    fn update_positions(&mut self, dt: f32) {
         for particle in self.particles.iter_mut() {
             particle.update(dt);
         }
@@ -108,12 +109,12 @@ impl Solver {
         }
     }
 
-    fn apply_gravity(&mut self, dt: &f32) {
+    fn apply_gravity(&mut self, dt: f32) {
         for particle in self.particles.iter_mut() {
-            particle.add_force_v2(&(self.gravity * *dt));
+            particle.add_force_v2(self.gravity * dt);
         }
         for circle in self.circles.iter_mut() {
-            circle.point.add_force_v2(&(self.gravity * *dt));
+            circle.point.add_force_v2(self.gravity * dt);
         }
     }
 
@@ -128,10 +129,10 @@ impl Solver {
 
     fn solve_boundary_collisions(&mut self) {
         for particle in self.particles.iter_mut() {
-            particle.particle_bounds(&self.bounds);
+            particle.particle_bounds(self.bounds);
         }
         for circle in self.circles.iter_mut() {
-            circle.solve_bounds(&self.bounds);
+            circle.solve_bounds(self.bounds);
         }
     }
 
@@ -147,9 +148,4 @@ impl Solver {
             }
         }
     }
-}
-
-pub struct Bounds {
-    pub pos: Vector2D<f32>,
-    pub size: Vector2D<f32>,
 }
