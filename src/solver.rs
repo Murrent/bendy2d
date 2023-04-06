@@ -2,6 +2,7 @@ use crate::circle::Circle;
 use crate::link::{CircleLink, ParticleLink};
 use crate::particle::Particle;
 use vector2d::Vector2D;
+use crate::polygon::Polygon;
 
 pub enum ColliderType {
     Particle,
@@ -9,6 +10,13 @@ pub enum ColliderType {
     Polygon,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct Bounds {
+    pub pos: Vector2D<f32>,
+    pub size: Vector2D<f32>,
+}
+
+#[derive(Debug, Clone)]
 pub struct Solver {
     pub gravity: Vector2D<f32>,
     pub bounds: Bounds,
@@ -17,6 +25,7 @@ pub struct Solver {
     particle_links: Vec<ParticleLink>,
     circles: Vec<Circle>,
     circle_links: Vec<CircleLink>,
+    polygons: Vec<Polygon>,
     sub_steps: u16,
     sub_steps_multiplier: f32,
 }
@@ -25,15 +34,16 @@ impl Solver {
     pub fn new() -> Self {
         Self {
             gravity: Vector2D::new(0.0, 98.2),
-            particles: Vec::new(),
-            particle_links: Vec::new(),
-            circles: Vec::new(),
-            circle_links: Vec::new(),
             bounds: Bounds {
                 pos: Vector2D { x: 0.0, y: 0.0 },
                 size: Vector2D { x: 100.0, y: 100.0 },
             },
             bounds_active: true,
+            particles: Vec::new(),
+            particle_links: Vec::new(),
+            circles: Vec::new(),
+            circle_links: Vec::new(),
+            polygons: Vec::new(),
             sub_steps: 8,
             sub_steps_multiplier: 0.0,
         }
@@ -44,6 +54,9 @@ impl Solver {
     }
     pub fn add_circle(&mut self, circle: Circle) {
         self.circles.push(circle);
+    }
+    pub fn add_polygon(&mut self, polygon: Polygon) {
+        self.polygons.push(polygon);
     }
 
     pub fn add_particle_link(&mut self, link: ParticleLink) {
@@ -59,6 +72,9 @@ impl Solver {
     pub fn get_circles_len(&self) -> usize {
         self.circles.len()
     }
+    pub fn get_polygons_len(&self) -> usize {
+        self.polygons.len()
+    }
 
     pub fn get_particle_links(&self) -> &Vec<ParticleLink> {
         &self.particle_links
@@ -73,12 +89,18 @@ impl Solver {
     pub fn get_circles(&self) -> &Vec<Circle> {
         &self.circles
     }
+    pub fn get_polygons(&self) -> &Vec<Polygon> {
+        &self.polygons
+    }
 
     pub fn get_particle(&self, index: usize) -> Option<&Particle> {
         self.particles.get(index)
     }
     pub fn get_circle(&self, index: usize) -> Option<&Circle> {
         self.circles.get(index)
+    }
+    pub fn get_polygon(&self, index: usize) -> Option<&Polygon> {
+        self.polygons.get(index)
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -100,14 +122,21 @@ impl Solver {
         for circle in self.circles.iter_mut() {
             circle.point.update(dt);
         }
+        for polygon in self.polygons.iter_mut() {
+            polygon.update(dt);
+        }
     }
 
     fn apply_gravity(&mut self, dt: f32) {
+        let gravity = self.gravity * dt;
         for particle in self.particles.iter_mut() {
-            particle.add_force_v2(self.gravity * dt);
+            particle.add_force_v2(gravity);
         }
         for circle in self.circles.iter_mut() {
-            circle.point.add_force_v2(self.gravity * dt);
+            circle.point.add_force_v2(gravity);
+        }
+        for polygon in self.polygons.iter_mut() {
+            polygon.add_force_v2(gravity);
         }
     }
 
@@ -141,10 +170,4 @@ impl Solver {
             }
         }
     }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct Bounds {
-    pub pos: Vector2D<f32>,
-    pub size: Vector2D<f32>,
 }
