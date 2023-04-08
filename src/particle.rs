@@ -1,19 +1,19 @@
+use nalgebra::Vector2;
 use crate::solver::Bounds;
-use vector2d::Vector2D;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Particle {
-    pub pos: Vector2D<f32>,
-    pub prev_pos: Vector2D<f32>,
-    acc: Vector2D<f32>,
+    pub pos: Vector2<f32>,
+    pub prev_pos: Vector2<f32>,
+    acc: Vector2<f32>,
 }
 
 impl Particle {
-    pub fn new(pos: Vector2D<f32>) -> Self {
+    pub fn new(pos: Vector2<f32>) -> Self {
         Self {
             pos,
             prev_pos: pos,
-            acc: Vector2D::new(0.0, 0.0),
+            acc: Vector2::new(0.0, 0.0),
         }
     }
 
@@ -21,7 +21,7 @@ impl Particle {
         let vel = self.pos - self.prev_pos;
         self.prev_pos = self.pos;
         self.pos = self.pos + vel + self.acc * dt * dt;
-        self.acc = Vector2D { x: 0.0, y: 0.0 };
+        self.acc = Vector2::new(0.0, 0.0);
     }
 
     pub fn solve_bounds(&mut self, bounds: Bounds) {
@@ -38,18 +38,15 @@ impl Particle {
     }
 
     pub fn add_force(&mut self, force_x: f32, force_y: f32) {
-        self.acc += Vector2D {
-            x: force_x,
-            y: force_y,
-        };
+        self.acc += Vector2::new(force_x, force_y);
     }
 
-    pub fn add_force_v2(&mut self, force: Vector2D<f32>) {
+    pub fn add_force_v2(&mut self, force: Vector2<f32>) {
         self.acc += force;
     }
 
-    pub fn add_force_towards(&mut self, point: Vector2D<f32>, force: f32) {
-        let dist: Vector2D<f32> = (point - self.pos).normalise();
+    pub fn add_force_towards(&mut self, point: Vector2<f32>, force: f32) {
+        let dist: Vector2<f32> = (point - self.pos).normalize();
         self.acc += dist * force;
     }
 }
