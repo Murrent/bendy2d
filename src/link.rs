@@ -1,4 +1,4 @@
-use vector2d::Vector2D;
+use nalgebra::Vector2;
 use crate::circle::Circle;
 use crate::particle::Particle;
 use crate::polygon::Polygon;
@@ -21,8 +21,8 @@ impl ParticleLink {
         let particle_a = &mut split.0[self.link.particle_a];
         let particle_b = &mut split.1[0];
         let dist_vec = particle_a.pos - particle_b.pos;
-        let dist = dist_vec.length();
-        let normal = dist_vec.normalise();
+        let dist = dist_vec.magnitude();
+        let normal = dist_vec.normalize();
         particle_a.pos -= normal * (dist - self.link.target_distance) * 0.5;
         particle_b.pos += normal * (dist - self.link.target_distance) * 0.5;
     }
@@ -39,8 +39,8 @@ impl CircleLink {
         let circle_a = &mut split.0[self.link.particle_a];
         let circle_b = &mut split.1[0];
         let dist_vec = circle_a.point.pos - circle_b.point.pos;
-        let dist = dist_vec.length();
-        let normal = dist_vec.normalise();
+        let dist = dist_vec.magnitude();
+        let normal = dist_vec.normalize();
         let c_a_rad_sqr = circle_a.radius * circle_a.radius;
         let c_b_rad_sqr = circle_b.radius * circle_b.radius;
         let scale = 1.0 / (c_a_rad_sqr + c_b_rad_sqr);
@@ -51,7 +51,7 @@ impl CircleLink {
 
 #[derive(Debug, Copy, Clone)]
 pub struct PolygonLink {
-    pub anchor: Vector2D<f32>,
+    pub anchor: Vector2<f32>,
     pub particle: usize,
     pub target_angle: f32,
     pub target_distance: f32,
@@ -61,10 +61,11 @@ impl PolygonLink {
     pub fn solve(&self, particle: &mut Particle, angle: f32, scale: f32) {
         let x = f32::cos(self.target_angle + angle) * self.target_distance * scale;
         let y = f32::sin(self.target_angle + angle) * self.target_distance * scale;
-        let dist_vec = particle.pos - (self.anchor + Vector2D::new(x, y));
-        let dist = dist_vec.length();
-        let normal = dist_vec.normalise();
-        particle.pos -= normal * dist;// * 0.5;
+        let dist_vec = particle.pos - (self.anchor + Vector2::new(x, y));
+        let dist = dist_vec.magnitude();
+        let normal = dist_vec.normalize();
+        //particle.pos -= normal * dist;// * 0.5;
+        particle.pos -= dist_vec;
         //point_b.pos += normal * (dist - self.link.target_distance) * 0.5;
     }
 }

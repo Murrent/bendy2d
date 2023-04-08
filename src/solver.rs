@@ -1,7 +1,7 @@
+use nalgebra::Vector2;
 use crate::circle::Circle;
 use crate::link::{CircleLink, ParticleLink};
 use crate::particle::Particle;
-use vector2d::Vector2D;
 use crate::polygon::Polygon;
 
 pub enum ColliderType {
@@ -12,13 +12,13 @@ pub enum ColliderType {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Bounds {
-    pub pos: Vector2D<f32>,
-    pub size: Vector2D<f32>,
+    pub pos: Vector2<f32>,
+    pub size: Vector2<f32>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Solver {
-    pub gravity: Vector2D<f32>,
+    pub gravity: Vector2<f32>,
     pub bounds: Bounds,
     pub bounds_active: bool,
     particles: Vec<Particle>,
@@ -33,10 +33,10 @@ pub struct Solver {
 impl Solver {
     pub fn new() -> Self {
         Self {
-            gravity: Vector2D::new(0.0, 98.2),
+            gravity: Vector2::new(0.0, 98.2),
             bounds: Bounds {
-                pos: Vector2D { x: 0.0, y: 0.0 },
-                size: Vector2D { x: 100.0, y: 100.0 },
+                pos: Vector2::new(0.0, 0.0),
+                size: Vector2::new(100.0, 100.0),
             },
             bounds_active: true,
             particles: Vec::new(),
@@ -44,12 +44,12 @@ impl Solver {
             circles: Vec::new(),
             circle_links: Vec::new(),
             polygons: Vec::new(),
-            sub_steps: 1,
+            sub_steps: 2,
             sub_steps_multiplier: 0.0,
         }
     }
 
-    pub fn add_particle(&mut self, pos: Vector2D<f32>) {
+    pub fn add_particle(&mut self, pos: Vector2<f32>) {
         self.particles.push(Particle::new(pos));
     }
     pub fn add_circle(&mut self, circle: Circle) {
