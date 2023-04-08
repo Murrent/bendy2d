@@ -11,7 +11,7 @@ pub struct Particle {
 impl Particle {
     pub fn new(pos: Vector2D<f32>) -> Self {
         Self {
-            pos: pos,
+            pos,
             prev_pos: pos,
             acc: Vector2D::new(0.0, 0.0),
         }
@@ -24,7 +24,7 @@ impl Particle {
         self.acc = Vector2D { x: 0.0, y: 0.0 };
     }
 
-    pub fn particle_bounds(&mut self, bounds: Bounds) {
+    pub fn solve_bounds(&mut self, bounds: Bounds) {
         if self.pos.x < bounds.pos.x {
             self.pos.x = bounds.pos.x;
         } else if self.pos.x > bounds.pos.x + bounds.size.x {
