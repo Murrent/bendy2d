@@ -1,5 +1,7 @@
+use vector2d::Vector2D;
 use crate::circle::Circle;
 use crate::particle::Particle;
+use crate::polygon::Polygon;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Link {
@@ -44,5 +46,25 @@ impl CircleLink {
         let scale = 1.0 / (c_a_rad_sqr + c_b_rad_sqr);
         circle_a.point.pos -= normal * (dist - self.link.target_distance) * scale * c_b_rad_sqr;
         circle_b.point.pos += normal * (dist - self.link.target_distance) * scale * c_a_rad_sqr;
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct PolygonLink {
+    pub anchor: Vector2D<f32>,
+    pub particle: usize,
+    pub target_angle: f32,
+    pub target_distance: f32,
+}
+
+impl PolygonLink {
+    pub fn solve(&self, particle: &mut Particle, angle: f32, scale: f32) {
+        let x = f32::cos(self.target_angle + angle) * self.target_distance * scale;
+        let y = f32::sin(self.target_angle + angle) * self.target_distance * scale;
+        let dist_vec = particle.pos - (self.anchor + Vector2D::new(x, y));
+        let dist = dist_vec.length();
+        let normal = dist_vec.normalise();
+        particle.pos -= normal * dist;// * 0.5;
+        //point_b.pos += normal * (dist - self.link.target_distance) * 0.5;
     }
 }
