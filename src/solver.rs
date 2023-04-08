@@ -44,7 +44,7 @@ impl Solver {
             circles: Vec::new(),
             circle_links: Vec::new(),
             polygons: Vec::new(),
-            sub_steps: 8,
+            sub_steps: 1,
             sub_steps_multiplier: 0.0,
         }
     }
@@ -56,6 +56,7 @@ impl Solver {
         self.circles.push(circle);
     }
     pub fn add_polygon(&mut self, polygon: Polygon) {
+        println!("Polygon added: {:?}", polygon);
         self.polygons.push(polygon);
     }
 
@@ -147,14 +148,20 @@ impl Solver {
         for link in self.circle_links.iter_mut() {
             link.solve(&mut self.circles);
         }
+        for polygon in self.polygons.iter_mut() {
+            polygon.solve_links();
+        }
     }
 
     fn solve_boundary_collisions(&mut self) {
         for particle in self.particles.iter_mut() {
-            particle.particle_bounds(self.bounds);
+            particle.solve_bounds(self.bounds);
         }
         for circle in self.circles.iter_mut() {
             circle.solve_bounds(self.bounds);
+        }
+        for polygon in self.polygons.iter_mut() {
+            polygon.solve_bounds(self.bounds);
         }
     }
 
