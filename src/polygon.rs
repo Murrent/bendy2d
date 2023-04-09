@@ -6,94 +6,133 @@ use crate::solver::Bounds;
 #[derive(Debug, Clone)]
 pub struct Polygon {
     pub points: Vec<Particle>,
-    pub links: Vec<PolygonLink>,
+    pub polygon_links: Vec<PolygonLink>,
+    pub particle_links: Vec<ParticleLink>,
     pub is_static: bool,
     pub center: Vector2<f32>,
-    pub original_shape: Vec<Vector2<f32>>,
-    pub start_angles: Vec<f32>,
-    pub rotation: f32,
-    pub desired_rotation: f32,
     pub scale: f32,
 }
 
 impl Polygon {
     pub fn circle(radius: f32, pos: Vector2<f32>, point_count: usize, is_static: bool) -> Self {
-        let mut points = Vec::new();
-        let mut links = Vec::new();
-        let mut original_shape = Vec::new();
-        let mut start_angles = Vec::new();
+        let mut particles = Vec::new();
+        let mut polygon_links = Vec::new();
+        let mut particle_links = Vec::new();
         let mut center = Vector2::new(0.0, 0.0);
         let mut angle = 0.0;
         for _ in 0..point_count {
             let x = radius * f32::cos(angle);
             let y = radius * f32::sin(angle);
             let point = Particle::new(pos + Vector2::new(x, y));
-            points.push(point);
-            original_shape.push(Vector2::new(x, y));
-            start_angles.push(angle);
+            particles.push(point);
             center += point.pos;
             angle += 2.0 * std::f32::consts::PI / point_count as f32;
         }
         center /= point_count as f32;
 
         for i in 0..point_count {
-            links.push(PolygonLink {
+            polygon_links.push(PolygonLink {
                 anchor: center,
                 particle: i,
-                target_angle: start_angles[i],
                 target_distance: radius,
             });
+            {
+                let mut a_id = i;
+                let mut b_id = (i + 2 * point_count / 3) % point_count;
+                // Makes sure that a_id is always lower than b_id
+                if a_id > b_id {
+                    let temp = a_id;
+                    a_id = b_id;
+                    b_id = temp;
+                }
+                let particle_a = &particles[a_id];
+                let particle_b = &particles[b_id];
+                let dist_vec = particle_a.pos - particle_b.pos;
+                particle_links.push(ParticleLink {
+                    link: Link {
+                        particle_a: a_id,
+                        particle_b: b_id,
+                        target_distance: dist_vec.magnitude(),
+                    },
+                });
+            }
+            {
+                let mut a_id = i;
+                let mut b_id = (i + point_count / 3) % point_count;
+                // Makes sure that a_id is always lower than b_id
+                if a_id > b_id {
+                    let temp = a_id;
+                    a_id = b_id;
+                    b_id = temp;
+                }
+                let particle_a = &particles[a_id];
+                let particle_b = &particles[b_id];
+                let dist_vec = particle_a.pos - particle_b.pos;
+                particle_links.push(ParticleLink {
+                    link: Link {
+                        particle_a: a_id,
+                        particle_b: b_id,
+                        target_distance: dist_vec.magnitude(),
+                    },
+                });
+            }
         }
 
         Self {
-            points,
-            links,
+            points: particles,
+            polygon_links,
+            particle_links,
             is_static,
             center,
-            original_shape,
-            start_angles,
-            rotation: 0.0,
-            desired_rotation: 0.0,
             scale: 1.0,
         }
     }
 
     pub fn new(points: Vec<Vector2<f32>>, is_static: bool) -> Self {
         let mut particles = Vec::new();
-        let mut links = Vec::new();
-        let mut original_shape = Vec::new();
-        let mut start_angles = Vec::new();
+        let mut polygon_links = Vec::new();
+        let mut particle_links = Vec::new();
         let mut center = Vector2::new(0.0, 0.0);
         for point in &points {
             let particle = Particle::new(*point);
             particles.push(particle);
-            original_shape.push(*point);
             center += particle.pos;
         }
         center /= points.len() as f32;
 
         for i in 0..points.len() {
             let point = points[i];
-            let normal = (point - center).normalize();
-            let angle = normal.y.atan2(normal.x);
-            start_angles.push(angle);
-            links.push(PolygonLink {
+            polygon_links.push(PolygonLink {
                 anchor: center,
                 particle: i,
-                target_angle: angle,
                 target_distance: (point - center).magnitude(),
+            });
+            let mut a_id = i;
+            let mut b_id = (i + 1) % particles.len();
+            // Makes sure that a_id is always lower than b_id
+            if a_id > b_id {
+                let temp = a_id;
+                a_id = b_id;
+                b_id = temp;
+            }
+            let particle_a = &particles[a_id];
+            let particle_b = &particles[b_id];
+            let dist_vec = particle_a.pos - particle_b.pos;
+            particle_links.push(ParticleLink {
+                link: Link {
+                    particle_a: a_id,
+                    particle_b: b_id,
+                    target_distance: dist_vec.magnitude(),
+                },
             });
         }
 
         Self {
             points: particles,
-            links,
+            polygon_links,
+            particle_links,
             is_static,
             center,
-            original_shape,
-            start_angles,
-            rotation: 0.0,
-            desired_rotation: 0.0,
             scale: 1.0,
         }
     }
@@ -105,12 +144,6 @@ impl Polygon {
         for point in &mut self.points {
             point.update(dt);
         }
-
-        self.center = Vector2::new(0.0, 0.0);
-        for point in &self.points {
-            self.center += point.pos;
-        }
-        self.center /= self.points.len() as f32;
         //
         // self.rotation = 0.0;
         // let mut total_angle = 0.0;
@@ -133,9 +166,13 @@ impl Polygon {
     }
 
     pub fn solve_links(&mut self) {
-        for link in &mut self.links {
+        self.calc_center();
+        for link in &mut self.polygon_links {
             link.anchor = self.center;
-            link.solve(&mut self.points[link.particle], self.rotation, self.scale);
+            //link.solve(&mut self.points[link.particle]);
+        }
+        for link in &mut self.particle_links {
+            link.solve(&mut self.points);
         }
     }
 
