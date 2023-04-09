@@ -56,7 +56,6 @@ impl Solver {
         self.circles.push(circle);
     }
     pub fn add_polygon(&mut self, polygon: Polygon) {
-        println!("Polygon added: {:?}", polygon);
         self.polygons.push(polygon);
     }
 
