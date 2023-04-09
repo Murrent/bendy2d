@@ -5,6 +5,7 @@ use crate::polygon::Polygon;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Link {
+    // particle_a needs to be lower than particle_b
     pub particle_a: usize,
     pub particle_b: usize,
     pub target_distance: f32,
@@ -53,19 +54,16 @@ impl CircleLink {
 pub struct PolygonLink {
     pub anchor: Vector2<f32>,
     pub particle: usize,
-    pub target_angle: f32,
     pub target_distance: f32,
 }
 
 impl PolygonLink {
-    pub fn solve(&self, particle: &mut Particle, angle: f32, scale: f32) {
-        let x = f32::cos(self.target_angle + angle) * self.target_distance * scale;
-        let y = f32::sin(self.target_angle + angle) * self.target_distance * scale;
-        let dist_vec = particle.pos - (self.anchor + Vector2::new(x, y));
+    pub fn solve(&self, particle: &mut Particle) {
+        let dist_vec = particle.pos - self.anchor;
         let dist = dist_vec.magnitude();
         let normal = dist_vec.normalize();
         //particle.pos -= normal * dist;// * 0.5;
-        particle.pos -= dist_vec;
+        particle.pos -= normal * (dist - self.target_distance);
         //point_b.pos += normal * (dist - self.link.target_distance) * 0.5;
     }
 }
