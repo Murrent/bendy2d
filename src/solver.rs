@@ -175,5 +175,15 @@ impl Solver {
                 circle_i.solve_circle(circle_j);
             }
         }
+        let length = self.polygons.len();
+        for i in 0..length {
+            let start_index = i + 1;
+            let split = self.polygons.split_at_mut(start_index);
+            let polygon_i = &mut split.0[i];
+            for j in start_index..length {
+                let polygon_j = &mut split.1[j - start_index];
+                polygon_i.solve_polygon(polygon_j);
+            }
+        }
     }
 }
