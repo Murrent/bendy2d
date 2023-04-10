@@ -2,6 +2,7 @@ use nalgebra::Vector2;
 use crate::link::{Link, ParticleLink, PolygonLink};
 use crate::particle::Particle;
 use crate::solver::Bounds;
+use crate::common::line_intersection;
 
 #[derive(Debug, Clone)]
 pub struct Polygon {
@@ -156,12 +157,51 @@ impl Polygon {
         //     total_angle += angle;
         // }
         // self.rotation = total_angle / self.points.len() as f32;
-
     }
 
     pub fn solve_bounds(&mut self, bounds: Bounds) {
         for point in &mut self.points {
             point.solve_bounds(bounds);
+        }
+    }
+
+    pub fn solve_polygon(&mut self, other: &mut Polygon) {
+        self.solve_polygon_single(other);
+        other.solve_polygon_single(self);
+    }
+
+    pub fn solve_polygon_single(&mut self, other: &mut Polygon) {
+        for i in 0..self.points.len() {
+            let point_a = self.points[i];
+            let b_id = (i + 1) % self.points.len();
+            let point_b = self.points[b_id];
+            for others_point in &mut other.points {
+                let result = line_intersection((point_a.pos, point_b.pos), (others_point.pos, other.center));
+                if let Some(intersection) = result {
+                    let dist_to_a = (intersection - point_a.pos).magnitude();
+                    let dist_to_b = (intersection - point_b.pos).magnitude();
+                    let dist_to_intersection = (intersection - others_point.pos).magnitude();
+                    let dist_a_b = dist_to_a + dist_to_b;
+                    let force_a_b = 2.0 * dist_to_intersection / 3.0;
+                    let force_others = dist_to_intersection / 3.0;
+                    let force_a = force_a_b * dist_to_b / dist_a_b;
+                    let force_b = force_a_b * dist_to_a / dist_a_b;
+                    let normal_a_b = (point_b.pos - point_a.pos).normalize();
+                    let perp_a_b = Vector2::new(-normal_a_b.y, normal_a_b.x);
+                    {
+                        let mut point_a = &mut self.points[i];
+                        point_a.pos += perp_a_b * force_a;
+                    }
+                    {
+                        let mut point_b = &mut self.points[b_id];
+                        point_b.pos += perp_a_b * force_b;
+                    }
+                    {
+                        let mut others_point = others_point;
+                        others_point.pos += (intersection - others_point.pos).normalize() * force_others;
+                    }
+                }
+            }
         }
     }
 
