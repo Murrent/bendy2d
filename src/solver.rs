@@ -44,7 +44,7 @@ impl Solver {
             circles: Vec::new(),
             circle_links: Vec::new(),
             polygons: Vec::new(),
-            sub_steps: 2,
+            sub_steps: 8,
             sub_steps_multiplier: 0.0,
         }
     }
@@ -107,7 +107,7 @@ impl Solver {
         self.sub_steps_multiplier = 1.0 / self.sub_steps as f32;
         let delta = dt * self.sub_steps_multiplier;
         for _ in 0..self.sub_steps {
-            self.apply_gravity(delta);
+            self.apply_gravity();
             self.apply_links();
             self.solve_dynamic_collisions();
             self.solve_boundary_collisions();
@@ -127,8 +127,8 @@ impl Solver {
         }
     }
 
-    fn apply_gravity(&mut self, dt: f32) {
-        let gravity = self.gravity * dt;
+    fn apply_gravity(&mut self) {
+        let gravity = self.gravity;
         for particle in self.particles.iter_mut() {
             particle.add_force_v2(gravity);
         }
