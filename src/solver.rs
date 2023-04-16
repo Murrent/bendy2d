@@ -1,8 +1,8 @@
-use nalgebra::Vector2;
 use crate::circle::Circle;
 use crate::link::{CircleLink, ParticleLink};
 use crate::particle::Particle;
 use crate::polygon::Polygon;
+use nalgebra::Vector2;
 
 pub enum ColliderType {
     Particle,
@@ -44,7 +44,7 @@ impl Solver {
             circles: Vec::new(),
             circle_links: Vec::new(),
             polygons: Vec::new(),
-            sub_steps: 8,
+            sub_steps: 1,
             sub_steps_multiplier: 0.0,
         }
     }
