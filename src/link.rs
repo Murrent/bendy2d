@@ -1,7 +1,7 @@
-use nalgebra::Vector2;
 use crate::circle::Circle;
 use crate::particle::Particle;
 use crate::polygon::Polygon;
+use nalgebra::Vector2;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Link {
