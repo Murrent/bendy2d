@@ -1,8 +1,8 @@
-use nalgebra::{clamp, Vector2};
+use crate::common::{line_intersection, proj_point_on_line};
 use crate::link::{Link, ParticleLink, PolygonLink};
 use crate::particle::Particle;
 use crate::solver::Bounds;
-use crate::common::line_intersection;
+use nalgebra::{clamp, min, Vector2};
 
 #[derive(Debug, Clone)]
 pub struct Polygon {
@@ -142,6 +142,8 @@ impl Polygon {
         if self.is_static {
             return;
         }
+
+        self.calc_center();
         for point in &mut self.points {
             point.update(dt);
         }
@@ -170,59 +172,239 @@ impl Polygon {
         other.solve_polygon_single(self);
     }
 
+    pub fn contains_point(&self, point: Vector2<f32>) -> bool {
+        // // TODO: Check if polygon contains point
+        // for i in 0..self.points.len() {
+        //     let point_a = self.points[i];
+        //     let b_id = (i + 1) % self.points.len();
+        //     let point_b = self.points[b_id];
+        // }
+        false
+    }
+
     pub fn solve_polygon_single(&mut self, other: &mut Polygon) {
         for i in 0..self.points.len() {
             let point_a = self.points[i];
             let b_id = (i + 1) % self.points.len();
             let point_b = self.points[b_id];
+            //let mut closest_point = Option::<Vector2<f32>>::None;
             for others_point in &mut other.points {
-                let result = line_intersection((point_a.pos, point_b.pos), (others_point.pos, other.center));
+                let result =
+                    line_intersection((point_a.pos, point_b.pos), (others_point.pos, other.center));
+                //     let new_point = proj_point_on_line(others_point.pos, (point_a.pos, point_b.pos));
+                //     if let Some(point) = closest_point {
+                //         let dist_old = (point - self.center).magnitude_squared();
+                //         let dist_new = (new_point - self.center).magnitude_squared();
+                //         if dist_old > dist_new {
+                //             closest_point = Some(new_point);
+                //         }
+                //     }
+                // }
                 if let Some(intersection) = result {
-                    // We calculate the distance from the distance point to a and b
+                    //self.solve_point_line(others_point, intersection);
+                    // The velocity of the point that is penetrating the other polygon
+                    let vel_others = others_point.pos - others_point.prev_pos;
+                    // The velocities of the line endpoints
+                    let vel_a = point_a.pos - point_a.prev_pos;
+                    let vel_b = point_b.pos - point_b.prev_pos;
+                    // The velocity of the line
+                    let vel_ab = vel_a + vel_b;
+                    // The line normal
+                    let normal_line = (point_b.pos - point_a.pos).normalize();
+                    // The center point projected onto the line
+                    let center_proj = (normal_line.dot(&(self.center - intersection))
+                        / normal_line.dot(&normal_line))
+                        * normal_line;
+                    // The normal, inward facing from the line
+                    let normal_in = (self.center - (intersection + center_proj)).normalize();
+                    // The velocity of the line projected onto normal_in
+                    let vel_ab_in =
+                        (normal_in.dot(&vel_ab) / normal_in.dot(&normal_in)) * normal_in;
+                    // The velocity of the point projected onto normal_in
+                    let vel_others_in =
+                        (normal_in.dot(&vel_others) / normal_in.dot(&normal_in)) * normal_in;
+                    // Total collision velocity
+                    let vel_total = vel_ab_in + vel_others_in;
+                    let vel_third = vel_total / 3.0;
+                    let vel_line = vel_third * 2.0;
+                    // We calculate the distance from the intersection point to a and b
                     let dist_to_a = (intersection - point_a.pos).magnitude();
                     let dist_to_b = (intersection - point_b.pos).magnitude();
-                    // We also calculate the distance from the intersection point and the position of the penetrating point
+                    let dist_a_to_b = dist_to_a + dist_to_b;
+                    let influence_a = dist_to_a / dist_a_to_b;
+                    let influence_b = dist_to_b / dist_a_to_b;
+                    let dist_to_a_ratio = vel_line * influence_a;
+                    let dist_to_b_ratio = vel_line * influence_b;
+
                     let diff_to_point = intersection - others_point.pos;
                     let dist_to_intersection = diff_to_point.magnitude();
-                    // The distance between a and b
-                    let dist_a_b = dist_to_a + dist_to_b;
-                    // The velocity that should be applied to a and b
-                    let vel_a_b = 2.0 * dist_to_intersection / 3.0;
-                    // The velocity that the penetrating point should have
-                    // TODO: make sure that the point only loses velocity in the direction of the contact normal
-                    let vel_others = dist_to_intersection / 3.0;
-                    if dist_a_b == 0.0 {
-                        continue;
-                    }
-                    let vel_a = vel_a_b * dist_to_b / dist_a_b;
-                    let vel_b = vel_a_b * dist_to_a / dist_a_b;
-                    let normal_a_b = (point_b.pos - point_a.pos).normalize();
-                    if normal_a_b.dot(&normal_a_b) == 0.0 {
-                        continue;
-                    }
-                    let proj_point_n = (normal_a_b.dot(&diff_to_point) / normal_a_b.dot(&normal_a_b)) * normal_a_b;
-                    //let perp_a_b = Vector2::new(-normal_a_b.y, normal_a_b.x);
-                    let normal_out = (diff_to_point - proj_point_n).normalize();
-                    let reflection = diff_to_point - 2.0 * (diff_to_point.dot(&normal_out)) * normal_out;
+                    let diff_third = diff_to_point / 3.0;
+                    let diff_a = diff_third * influence_b;
+                    let diff_b = diff_third * influence_a;
+
                     {
                         let mut point_a = &mut self.points[i];
-                        let clamped_diff = clamp(normal_out * vel_a, Vector2::new(-1.0, -1.0), Vector2::new(1.0, 1.0));
-                        point_a.pos -= clamped_diff;
+                        point_a.prev_pos = point_a.pos;
+                        point_a.pos += dist_to_b_ratio;
                     }
                     {
                         let mut point_b = &mut self.points[b_id];
-                        let clamped_diff = clamp(normal_out * vel_b, Vector2::new(-1.0, -1.0), Vector2::new(1.0, 1.0));
-                        point_b.pos -= clamped_diff;
+                        point_b.prev_pos = point_b.pos;
+                        point_b.pos += dist_to_a_ratio;
                     }
                     {
                         let mut others_point = others_point;
-                        let clamped_diff = clamp(reflection * vel_others, Vector2::new(-1.0, -1.0), Vector2::new(1.0, 1.0));
-                        others_point.pos = intersection + clamped_diff;
+                        others_point.prev_pos = intersection;
+                        others_point.pos = intersection - vel_third; // + diff_third * 2.0;
                     }
+                    //------------------------------------------------------------------------------
+                    // // We calculate the distance from the distance point to a and b
+                    // let dist_to_a = (intersection - point_a.pos).magnitude();
+                    // let dist_to_b = (intersection - point_b.pos).magnitude();
+                    // // We also calculate the distance from the intersection point and the position of the penetrating point
+                    // let diff_to_point = intersection - others_point.pos;
+                    // let dist_to_intersection = diff_to_point.magnitude();
+                    // // The distance between a and b
+                    // let dist_a_b = dist_to_a + dist_to_b;
+                    // // The velocity that should be applied to a and b
+                    // let vel_a_b = 2.0 * dist_to_intersection / 3.0;
+                    // // The velocity that the penetrating point should have
+                    // // TODO: make sure that the point only loses velocity in the direction of the contact normal
+                    // let vel_others = dist_to_intersection / 3.0;
+                    // if dist_a_b == 0.0 {
+                    //     continue;
+                    // }
+                    // let vel_a = vel_a_b * dist_to_b / dist_a_b;
+                    // let vel_b = vel_a_b * dist_to_a / dist_a_b;
+                    // let normal_a_b = (point_b.pos - point_a.pos).normalize();
+                    // if normal_a_b.dot(&normal_a_b) == 0.0 {
+                    //     continue;
+                    // }
+                    // let proj_point_n = (normal_a_b.dot(&diff_to_point) / normal_a_b.dot(&normal_a_b)) * normal_a_b;
+                    // //let perp_a_b = Vector2::new(-normal_a_b.y, normal_a_b.x);
+                    // let normal_out = (diff_to_point - proj_point_n).normalize();
+                    // let reflection = diff_to_point - 2.0 * (diff_to_point.dot(&normal_out)) * normal_out;
+                    // {
+                    //     let mut point_a = &mut self.points[i];
+                    //     let clamped_diff = clamp(normal_out * vel_a, Vector2::new(-1.0, -1.0), Vector2::new(1.0, 1.0));
+                    //     point_a.pos -= clamped_diff;
+                    // }
+                    // {
+                    //     let mut point_b = &mut self.points[b_id];
+                    //     let clamped_diff = clamp(normal_out * vel_b, Vector2::new(-1.0, -1.0), Vector2::new(1.0, 1.0));
+                    //     point_b.pos -= clamped_diff;
+                    // }
+                    // {
+                    //     let mut others_point = others_point;
+                    //     let clamped_diff = clamp(reflection * vel_others, Vector2::new(-1.0, -1.0), Vector2::new(1.0, 1.0));
+                    //     others_point.pos = intersection + clamped_diff;
+                    // }
                 }
             }
         }
     }
+
+    // pub fn solve_point_line(&mut self, others_point: &mut Particle) {
+    //     // The velocity of the point that is penetrating the other polygon
+    //     let vel_others = others_point.pos - others_point.prev_pos;
+    //     // The velocities of the line endpoints
+    //     let vel_a = point_a.pos - point_a.prev_pos;
+    //     let vel_b = point_b.pos - point_b.prev_pos;
+    //     // The velocity of the line
+    //     let vel_ab = vel_a + vel_b;
+    //     // The line normal
+    //     let normal_line = (point_b.pos - point_a.pos).normalize();
+    //     // The center point projected onto the line
+    //     let center_proj = (normal_line.dot(&(self.center - intersection))
+    //         / normal_line.dot(&normal_line))
+    //         * normal_line;
+    //     // The normal, inward facing from the line
+    //     let normal_in = (self.center - (intersection + center_proj)).normalize();
+    //     // The velocity of the line projected onto normal_in
+    //     let vel_ab_in = (normal_in.dot(&vel_ab)
+    //         / normal_in.dot(&normal_in))
+    //         * normal_in;
+    //     // The velocity of the point projected onto normal_in
+    //     let vel_others_in = (normal_in.dot(&vel_others)
+    //         / normal_in.dot(&normal_in))
+    //         * normal_in;
+    //     // Total collision velocity
+    //     let vel_total = vel_ab_in + vel_others_in;
+    //     let vel_third = vel_total / 3.0;
+    //     let vel_line = vel_third * 2.0;
+    //     // We calculate the distance from the intersection point to a and b
+    //     let dist_to_a = (intersection - point_a.pos).magnitude();
+    //     let dist_to_b = (intersection - point_b.pos).magnitude();
+    //     let dist_a_to_b = dist_to_a + dist_to_b;
+    //     let influence_a = dist_to_a / dist_a_to_b;
+    //     let influence_b = dist_to_b / dist_a_to_b;
+    //     let dist_to_a_ratio = vel_line * influence_a;
+    //     let dist_to_b_ratio = vel_line * influence_b;
+    //
+    //     let diff_to_point = intersection - others_point.pos;
+    //     let dist_to_intersection = diff_to_point.magnitude();
+    //     let diff_third = diff_to_point / 3.0;
+    //     let diff_a = diff_third * influence_b;
+    //     let diff_b = diff_third * influence_a;
+    //
+    //     {
+    //         let mut point_a = &mut self.points[i];
+    //         point_a.pos -= diff_third;
+    //         point_a.prev_pos = point_a.pos + diff_a;
+    //     }
+    //     {
+    //         let mut point_b = &mut self.points[b_id];
+    //         point_b.pos -= diff_third;
+    //         point_b.prev_pos = point_b.pos + diff_b;
+    //     }
+    //     {
+    //         let mut others_point = others_point;
+    //         others_point.pos += diff_third * 2.0;
+    //         others_point.prev_pos = others_point.pos + vel_third;
+    //     }
+    //
+    //     // // We calculate the distance from the distance point to a and b
+    //     // let dist_to_a = (intersection - point_a.pos).magnitude();
+    //     // let dist_to_b = (intersection - point_b.pos).magnitude();
+    //     // // We also calculate the distance from the intersection point and the position of the penetrating point
+    //     // let diff_to_point = intersection - others_point.pos;
+    //     // let dist_to_intersection = diff_to_point.magnitude();
+    //     // // The distance between a and b
+    //     // let dist_a_b = dist_to_a + dist_to_b;
+    //     // // The velocity that should be applied to a and b
+    //     // let vel_a_b = 2.0 * dist_to_intersection / 3.0;
+    //     // // The velocity that the penetrating point should have
+    //     // // TODO: make sure that the point only loses velocity in the direction of the contact normal
+    //     // let vel_others = dist_to_intersection / 3.0;
+    //     // if dist_a_b == 0.0 {
+    //     //     continue;
+    //     // }
+    //     // let vel_a = vel_a_b * dist_to_b / dist_a_b;
+    //     // let vel_b = vel_a_b * dist_to_a / dist_a_b;
+    //     // let normal_a_b = (point_b.pos - point_a.pos).normalize();
+    //     // if normal_a_b.dot(&normal_a_b) == 0.0 {
+    //     //     continue;
+    //     // }
+    //     // let proj_point_n = (normal_a_b.dot(&diff_to_point) / normal_a_b.dot(&normal_a_b)) * normal_a_b;
+    //     // //let perp_a_b = Vector2::new(-normal_a_b.y, normal_a_b.x);
+    //     // let normal_out = (diff_to_point - proj_point_n).normalize();
+    //     // let reflection = diff_to_point - 2.0 * (diff_to_point.dot(&normal_out)) * normal_out;
+    //     // {
+    //     //     let mut point_a = &mut self.points[i];
+    //     //     let clamped_diff = clamp(normal_out * vel_a, Vector2::new(-1.0, -1.0), Vector2::new(1.0, 1.0));
+    //     //     point_a.pos -= clamped_diff;
+    //     // }
+    //     // {
+    //     //     let mut point_b = &mut self.points[b_id];
+    //     //     let clamped_diff = clamp(normal_out * vel_b, Vector2::new(-1.0, -1.0), Vector2::new(1.0, 1.0));
+    //     //     point_b.pos -= clamped_diff;
+    //     // }
+    //     // {
+    //     //     let mut others_point = others_point;
+    //     //     let clamped_diff = clamp(reflection * vel_others, Vector2::new(-1.0, -1.0), Vector2::new(1.0, 1.0));
+    //     //     others_point.pos = intersection + clamped_diff;
+    //     // }
+    // }
 
     pub fn solve_links(&mut self) {
         self.calc_center();
