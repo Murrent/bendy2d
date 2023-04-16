@@ -4,7 +4,10 @@ use nalgebra::Vector2;
 // and if they do, return the point of intersection
 // Make line_intersection and inline function
 #[inline]
-pub fn line_intersection(line1: (Vector2<f32>, Vector2<f32>), line2: (Vector2<f32>, Vector2<f32>)) -> Option<Vector2<f32>> {
+pub fn line_intersection(
+    line1: (Vector2<f32>, Vector2<f32>),
+    line2: (Vector2<f32>, Vector2<f32>),
+) -> Option<Vector2<f32>> {
     let (p1, p2) = line1;
     let (p3, p4) = line2;
     let s1_x = p2.x - p1.x;
@@ -23,4 +26,30 @@ pub fn line_intersection(line1: (Vector2<f32>, Vector2<f32>), line2: (Vector2<f3
     } else {
         None
     }
+}
+
+#[inline]
+pub fn proj_a_on_b(a: Vector2<f32>, b: Vector2<f32>) -> Vector2<f32> {
+    a.dot(&b) / b.magnitude_squared() * b
+}
+
+#[inline]
+pub fn proj_a_on_b_clamped(a: Vector2<f32>, b: Vector2<f32>) -> Vector2<f32> {
+    let proj = proj_a_on_b(a, b);
+    if proj.xy() > b.xy() {
+        b
+    } else if proj.xy() < Vector2::zeros() {
+        Vector2::zeros()
+    } else {
+        proj
+    }
+}
+
+#[inline]
+pub fn proj_point_on_line(point: Vector2<f32>, line: (Vector2<f32>, Vector2<f32>)) -> Vector2<f32> {
+    let (l_start, l_end) = line;
+    let line_vec = l_end - l_start;
+    let point_vec = point - l_start;
+    let proj = proj_a_on_b_clamped(point_vec, line_vec);
+    l_start + proj
 }
