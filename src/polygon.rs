@@ -225,37 +225,52 @@ impl Polygon {
                         (normal_in.dot(&vel_others) / normal_in.dot(&normal_in)) * normal_in;
                     // Total collision velocity
                     let vel_total = vel_ab_in + vel_others_in;
-                    let vel_third = vel_total / 3.0;
+                    // The velocity along the normal_in axis
+                    let normal_vel = normal_in * normal_in.dot(&vel_total);
+                    // Velocity distribution
+                    let vel_third = normal_vel / 3.0;
                     let vel_line = vel_third * 2.0;
                     // We calculate the distance from the intersection point to a and b
                     let dist_to_a = (intersection - point_a.pos).magnitude();
                     let dist_to_b = (intersection - point_b.pos).magnitude();
+                    // The length of the line we intersect
                     let dist_a_to_b = dist_to_a + dist_to_b;
-                    let influence_a = dist_to_a / dist_a_to_b;
-                    let influence_b = dist_to_b / dist_a_to_b;
-                    let dist_to_a_ratio = vel_line * influence_a;
-                    let dist_to_b_ratio = vel_line * influence_b;
+                    // The influence ratio of a and b
+                    let influence_a = dist_to_b / dist_a_to_b;
+                    let influence_b = dist_to_a / dist_a_to_b;
+                    // The new velocity of a and b
+                    let new_vel_a = influence_a * vel_line;
+                    let new_vel_b = influence_b * vel_line;
+                    // The new velocity of point
+                    let new_vel_point = vel_third;
 
-                    let diff_to_point = intersection - others_point.pos;
-                    let dist_to_intersection = diff_to_point.magnitude();
-                    let diff_third = diff_to_point / 3.0;
-                    let diff_a = diff_third * influence_b;
-                    let diff_b = diff_third * influence_a;
+
+                    //let dist_to_a_ratio = vel_line * influence_a;
+                    //let dist_to_b_ratio = vel_line * influence_b;
+
+                    // The vector between intersection and point
+                    let diff_int_to_point = intersection - others_point.pos;
+                    let intersection_on_normal =
+                        (normal_in.dot(&diff_int_to_point) / normal_in.dot(&normal_in)) * normal_in;
+                    let displace_point = intersection_on_normal / 3.0;
+                    let displace_line = displace_point * 2.0;
+                    let displacement_a = influence_a * displace_line;
+                    let displacement_b = influence_b * displace_line;
 
                     {
                         let mut point_a = &mut self.points[i];
-                        point_a.prev_pos = point_a.pos;
-                        point_a.pos += dist_to_b_ratio;
+                        //point_a.prev_pos = point_a.pos + displacement_a;
+                        point_a.pos -= displacement_a;
                     }
                     {
                         let mut point_b = &mut self.points[b_id];
-                        point_b.prev_pos = point_b.pos;
-                        point_b.pos += dist_to_a_ratio;
+                        //point_b.prev_pos = point_b.pos + displacement_b;
+                        point_b.pos -= displacement_b;
                     }
                     {
                         let mut others_point = others_point;
-                        others_point.prev_pos = intersection;
-                        others_point.pos = intersection - vel_third; // + diff_third * 2.0;
+                        //others_point.prev_pos = others_point.pos - displace_point;
+                        others_point.pos += displace_point; // + diff_third * 2.0;
                     }
                     //------------------------------------------------------------------------------
                     // // We calculate the distance from the distance point to a and b
