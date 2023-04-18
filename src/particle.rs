@@ -26,13 +26,21 @@ impl Particle {
 
     pub fn solve_bounds(&mut self, bounds: Bounds) {
         if self.pos.x < bounds.pos.x {
+            let vel_x = self.prev_pos.x - self.pos.x;
+            self.prev_pos.x = bounds.pos.x - vel_x;
             self.pos.x = bounds.pos.x;
         } else if self.pos.x > bounds.pos.x + bounds.size.x {
+            let vel_x = self.prev_pos.x - self.pos.x;
+            self.prev_pos.x = bounds.pos.x + bounds.size.x - vel_x;
             self.pos.x = bounds.pos.x + bounds.size.x;
         }
         if self.pos.y < bounds.pos.y {
+            let vel_y = self.prev_pos.y - self.pos.y;
+            self.prev_pos.y = bounds.pos.y - vel_y;
             self.pos.y = bounds.pos.y;
         } else if self.pos.y > bounds.pos.y + bounds.size.y {
+            let vel_y = self.prev_pos.y - self.pos.y;
+            self.prev_pos.y = bounds.pos.y + bounds.size.y - vel_y;
             self.pos.y = bounds.pos.y + bounds.size.y;
         }
     }

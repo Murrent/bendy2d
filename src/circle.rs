@@ -10,13 +10,21 @@ pub struct Circle {
 impl Circle {
     pub fn solve_bounds(&mut self, bounds: Bounds) {
         if self.point.pos.x < bounds.pos.x + self.radius {
+            let vel_x = self.point.prev_pos.x - self.point.pos.x;
+            self.point.prev_pos.x = bounds.pos.x + self.radius - vel_x;
             self.point.pos.x = bounds.pos.x + self.radius;
         } else if self.point.pos.x > bounds.pos.x + bounds.size.x - self.radius {
+            let vel_x = self.point.prev_pos.x - self.point.pos.x;
+            self.point.prev_pos.x = bounds.pos.x + bounds.size.x - self.radius - vel_x;
             self.point.pos.x = bounds.pos.x + bounds.size.x - self.radius;
         }
         if self.point.pos.y < bounds.pos.y + self.radius {
+            let vel_y = self.point.prev_pos.y - self.point.pos.y;
+            self.point.prev_pos.y = bounds.pos.y + self.radius - vel_y;
             self.point.pos.y = bounds.pos.y + self.radius;
         } else if self.point.pos.y > bounds.pos.y + bounds.size.y - self.radius {
+            let vel_y = self.point.prev_pos.y - self.point.pos.y;
+            self.point.prev_pos.y = bounds.pos.y + bounds.size.y - self.radius - vel_y;
             self.point.pos.y = bounds.pos.y + bounds.size.y - self.radius;
         }
     }
