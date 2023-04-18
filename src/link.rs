@@ -3,6 +3,7 @@ use crate::particle::Particle;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Link {
+    // particle_a needs to be lower than particle_b
     pub particle_a: usize,
     pub particle_b: usize,
     pub target_distance: f32,
@@ -19,8 +20,8 @@ impl ParticleLink {
         let particle_a = &mut split.0[self.link.particle_a];
         let particle_b = &mut split.1[0];
         let dist_vec = particle_a.pos - particle_b.pos;
-        let dist = dist_vec.length();
-        let normal = dist_vec.normalise();
+        let dist = dist_vec.magnitude();
+        let normal = dist_vec.normalize();
         particle_a.pos -= normal * (dist - self.link.target_distance) * 0.5;
         particle_b.pos += normal * (dist - self.link.target_distance) * 0.5;
     }
@@ -37,8 +38,8 @@ impl CircleLink {
         let circle_a = &mut split.0[self.link.particle_a];
         let circle_b = &mut split.1[0];
         let dist_vec = circle_a.point.pos - circle_b.point.pos;
-        let dist = dist_vec.length();
-        let normal = dist_vec.normalise();
+        let dist = dist_vec.magnitude();
+        let normal = dist_vec.normalize();
         let c_a_rad_sqr = circle_a.radius * circle_a.radius;
         let c_b_rad_sqr = circle_b.radius * circle_b.radius;
         let scale = 1.0 / (c_a_rad_sqr + c_b_rad_sqr);
