@@ -1,8 +1,5 @@
 use nalgebra::Vector2;
 
-// help me make an inline function that returns an option of whether two lines intersect
-// and if they do, return the point of intersection
-// Make line_intersection and inline function
 #[inline]
 pub fn line_intersection(
     line1: (Vector2<f32>, Vector2<f32>),
