@@ -1,7 +1,5 @@
 use crate::circle::Circle;
 use crate::particle::Particle;
-use crate::polygon::Polygon;
-use nalgebra::Vector2;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Link {
@@ -47,23 +45,5 @@ impl CircleLink {
         let scale = 1.0 / (c_a_rad_sqr + c_b_rad_sqr);
         circle_a.point.pos -= normal * (dist - self.link.target_distance) * scale * c_b_rad_sqr;
         circle_b.point.pos += normal * (dist - self.link.target_distance) * scale * c_a_rad_sqr;
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct PolygonLink {
-    pub anchor: Vector2<f32>,
-    pub particle: usize,
-    pub target_distance: f32,
-}
-
-impl PolygonLink {
-    pub fn solve(&self, particle: &mut Particle) {
-        let dist_vec = particle.pos - self.anchor;
-        let dist = dist_vec.magnitude();
-        let normal = dist_vec.normalize();
-        //particle.pos -= normal * dist;// * 0.5;
-        particle.pos -= normal * (dist - self.target_distance);
-        //point_b.pos += normal * (dist - self.link.target_distance) * 0.5;
     }
 }
