@@ -21,9 +21,12 @@ impl ParticleLink {
         let particle_b = &mut split.1[0];
         let dist_vec = particle_a.pos - particle_b.pos;
         let dist = dist_vec.magnitude();
-        let normal = dist_vec.normalize();
-        particle_a.pos -= normal * (dist - self.link.target_distance) * 0.5;
-        particle_b.pos += normal * (dist - self.link.target_distance) * 0.5;
+        // let normal = dist_vec.normalize();
+        // particle_a.pos -= normal * (dist - self.link.target_distance) * 0.5;
+        // particle_b.pos += normal * (dist - self.link.target_distance) * 0.5;
+        let diff = (dist - self.link.target_distance) / dist;
+        particle_a.pos -= dist_vec * diff * 0.5;
+        particle_b.pos += dist_vec * diff * 0.5;
     }
 }
 
