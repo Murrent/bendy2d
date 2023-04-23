@@ -218,6 +218,10 @@ impl Polygon {
                 //particle_b.pos += clamp(pen_on_line * pen_mag * particle_b.friction, Vector2::new(0.0, 0.0), pen_on_normal);
             }
             {
+                // I think that the problem is that the friction is based on the direction of the point to the center
+                // With friction, according to the definition from the paper we should somehow get the penetration
+                // vector based on the previous position and the current position, instead of the current position and the center
+                // TODO: implement a new collision detection algorithm that projects the penetration vector onto the closest line
 
                 let vel_before = others_point.prev_pos - others_point.pos;
                 let vel_mag = vel_before.magnitude();
