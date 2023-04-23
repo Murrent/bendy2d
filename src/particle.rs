@@ -1,10 +1,11 @@
 use crate::solver::Bounds;
-use nalgebra::Vector2;
+use nalgebra::{clamp, Vector2};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Particle {
     pub pos: Vector2<f32>,
     pub prev_pos: Vector2<f32>,
+    pub friction: f32,
     acc: Vector2<f32>,
 }
 
@@ -13,6 +14,7 @@ impl Particle {
         Self {
             pos,
             prev_pos: pos,
+            friction: 1.0,
             acc: Vector2::new(0.0, 0.0),
         }
     }
@@ -26,22 +28,26 @@ impl Particle {
 
     pub fn solve_bounds(&mut self, bounds: Bounds) {
         if self.pos.x < bounds.pos.x {
-            let vel_x = self.prev_pos.x - self.pos.x;
-            self.prev_pos.x = bounds.pos.x - vel_x;
+            let pen_x = (bounds.pos.x - self.pos.x).abs();
             self.pos.x = bounds.pos.x;
+            let vel_y = self.prev_pos.y - self.pos.y;
+            self.pos.y += clamp(pen_x * self.friction, 0.0, vel_y);
         } else if self.pos.x > bounds.pos.x + bounds.size.x {
-            let vel_x = self.prev_pos.x - self.pos.x;
-            self.prev_pos.x = bounds.pos.x + bounds.size.x - vel_x;
+            let pen_x = (self.pos.x - (bounds.pos.x + bounds.size.x)).abs();
             self.pos.x = bounds.pos.x + bounds.size.x;
+            let vel_y = self.prev_pos.y - self.pos.y;
+            self.pos.y += clamp(pen_x * self.friction, 0.0, vel_y);
         }
         if self.pos.y < bounds.pos.y {
-            let vel_y = self.prev_pos.y - self.pos.y;
-            self.prev_pos.y = bounds.pos.y - vel_y;
+            let pen_y = (bounds.pos.y - self.pos.y).abs();
             self.pos.y = bounds.pos.y;
+            let vel_x = self.prev_pos.x - self.pos.x;
+            self.pos.x += clamp(pen_y * self.friction, 0.0, vel_x);
         } else if self.pos.y > bounds.pos.y + bounds.size.y {
-            let vel_y = self.prev_pos.y - self.pos.y;
-            self.prev_pos.y = bounds.pos.y + bounds.size.y - vel_y;
+            let pen_y = (self.pos.y - (bounds.pos.y + bounds.size.y)).abs();
             self.pos.y = bounds.pos.y + bounds.size.y;
+            let vel_x = self.prev_pos.x - self.pos.x;
+            self.pos.x += clamp(pen_y * self.friction, 0.0, vel_x);
         }
     }
 
