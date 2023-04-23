@@ -1,8 +1,8 @@
-use crate::common::line_intersection;
+use crate::common::{line_intersection, proj_a_on_b};
 use crate::link::{Link, ParticleLink};
 use crate::particle::Particle;
 use crate::solver::Bounds;
-use nalgebra::Vector2;
+use nalgebra::{clamp, Vector2};
 
 #[derive(Debug, Clone)]
 pub struct Polygon {
@@ -145,74 +145,93 @@ impl Polygon {
     }
 
     pub fn solve_polygon_single(&mut self, other: &mut Polygon) {
-        for i in 0..self.particles.len() {
-            let point_a = self.particles[i];
-            let b_id = (i + 1) % self.particles.len();
+        for a_id in 0..self.particles.len() {
+            let point_a = self.particles[a_id];
+            let b_id = (a_id + 1) % self.particles.len();
             let point_b = self.particles[b_id];
             for others_point in &mut other.particles {
-                if let Some((new_a, new_b, new_others)) =
-                    self.resolve_line_intersection(&point_a, &point_b, others_point, other.center)
-                {
-                    self.particles[i].pos = new_a;
-                    self.particles[b_id].pos = new_b;
-                    others_point.pos = new_others;
+                let result = line_intersection((point_a.pos, point_b.pos), (others_point.pos, other.center));
+                if let Some(intersection) = result {
+                    self.resolve_line_intersection(intersection, a_id, b_id, others_point);
                 }
             }
         }
     }
 
-    fn resolve_line_intersection(
+    pub fn resolve_line_intersection(
         &mut self,
-        point_a: &Particle,
-        point_b: &Particle,
+        intersection: Vector2<f32>,
+        a_id: usize,
+        b_id: usize,
         others_point: &mut Particle,
-        other_center: Vector2<f32>,
-    ) -> Option<(Vector2<f32>, Vector2<f32>, Vector2<f32>)> {
-        let result =
-            line_intersection((point_a.pos, point_b.pos), (others_point.pos, other_center));
-        if let Some(intersection) = result {
-            // The line normal
-            let normal_line = (point_b.pos - point_a.pos).normalize();
-            // The center point projected onto the line
-            let center_proj = (normal_line.dot(&(self.center - intersection))
-                / normal_line.dot(&normal_line))
-                * normal_line;
-            // The normal, inward facing from the line
-            let normal_in = (self.center - (intersection + center_proj)).normalize();
-            // We calculate the distance from the intersection point to a and b
-            let dist_to_a = (intersection - point_a.pos).magnitude();
-            let dist_to_b = (intersection - point_b.pos).magnitude();
-            // The length of the line we intersect
-            let dist_a_to_b = dist_to_a + dist_to_b;
-            // The influence ratio of a and b
-            let influence_a = dist_to_b / dist_a_to_b;
-            let influence_b = dist_to_a / dist_a_to_b;
-            // The vector between intersection and point
-            let diff_int_to_point = intersection - others_point.pos;
-            // diff_int_to_point projected onto the normal
-            let intersection_on_normal =
-                (normal_in.dot(&diff_int_to_point) / normal_in.dot(&normal_in)) * normal_in;
-            // A third of the displacement
-            let displace_third = intersection_on_normal / 3.0;
-            // The displacement total for the line
-            let displace_line = displace_third * 2.0;
-            // The displacement for a and b
-            let displacement_a = influence_a * displace_line;
-            let displacement_b = influence_b * displace_line;
-            // The new positions
-            let new_a = point_a.pos - displacement_a;
-            let new_b = point_b.pos - displacement_b;
-            // The new position for the point
-            let intersection_result = line_intersection(
-                (point_a.pos, point_b.pos),
-                (others_point.pos, others_point.pos - normal_in * 10000.0),
-            );
-            if let Some(new_point) = intersection_result {
-                return Some((new_a, new_b, new_point));
+    ) {
+        let point_a = &self.particles[a_id];
+        let point_b = &self.particles[b_id];
+
+        // The line normal
+        let normal_line = (point_b.pos - point_a.pos).normalize();
+        // The center point projected onto the line
+        let center_proj = (normal_line.dot(&(self.center - intersection))
+            / normal_line.dot(&normal_line))
+            * normal_line;
+        // The normal, inward facing from the line
+        let normal_in = (self.center - (intersection + center_proj)).normalize();
+        // We calculate the distance from the intersection point to a and b
+        let dist_to_a = (intersection - point_a.pos).magnitude();
+        let dist_to_b = (intersection - point_b.pos).magnitude();
+        // The length of the line we intersect
+        let dist_a_to_b = dist_to_a + dist_to_b;
+        // The influence ratio of a and b
+        let influence_a = dist_to_b / dist_a_to_b;
+        let influence_b = dist_to_a / dist_a_to_b;
+        // The penetration vector, between intersection and point
+        let pen_vector = intersection - others_point.pos;
+        // pen_vector projected onto the normal
+        let pen_on_normal =
+            (normal_in.dot(&pen_vector) / normal_in.dot(&normal_in)) * normal_in;
+        // A third of the displacement
+        let displace_third = pen_on_normal / 3.0;
+        // The displacement total for the line
+        let displace_line = displace_third * 2.0;
+        // The displacement for a and b
+        let displacement_a = influence_a * displace_line;
+        let displacement_b = influence_b * displace_line;
+        // The new positions
+        let new_a = point_a.pos - displacement_a;
+        let new_b = point_b.pos - displacement_b;
+        // The new position for the point
+        let intersection_result = line_intersection(
+            (point_a.pos, point_b.pos),
+            (others_point.pos, others_point.pos - normal_in * 10000.0),
+        );
+        if let Some(new_point) = intersection_result {
+            let pen_on_line = proj_a_on_b(pen_vector, normal_line);
+            let pen_mag = pen_on_normal.magnitude();
+            {
+                let particle_a = &mut self.particles[a_id];
+                particle_a.pos = new_a;
+                //particle_a.pos += clamp(pen_on_line * pen_mag * particle_a.friction, Vector2::new(0.0, 0.0), pen_on_normal);
             }
-            return None;
+            {
+                let particle_b = &mut self.particles[b_id];
+                particle_b.pos = new_b;
+                //particle_b.pos += clamp(pen_on_line * pen_mag * particle_b.friction, Vector2::new(0.0, 0.0), pen_on_normal);
+            }
+            {
+
+                let vel_before = others_point.prev_pos - others_point.pos;
+                let vel_mag = vel_before.magnitude();
+                let vel_dir = vel_before.normalize();
+                others_point.pos = new_point;
+                let vel_after = others_point.prev_pos - others_point.pos;
+                let vel_dir = vel_after.normalize();
+
+                let vel_on_line = proj_a_on_b(vel_before - pen_vector, normal_line);
+                let friction = clamp(pen_mag * others_point.friction, 0.0, vel_on_line.magnitude());
+                let friction_vec = pen_on_line * friction;
+                others_point.pos += friction_vec;
+            }
         }
-        None
     }
 
     pub fn solve_links(&mut self) {
