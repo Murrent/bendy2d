@@ -27,7 +27,7 @@ pub fn line_intersection(
 
 #[inline]
 pub fn proj_a_on_b(a: Vector2<f32>, b: Vector2<f32>) -> Vector2<f32> {
-    a.dot(&b) / b.magnitude_squared() * b
+    (a.dot(&b) / b.magnitude_squared()) * b
 }
 
 #[inline]
