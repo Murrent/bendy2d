@@ -2,6 +2,7 @@ use crate::circle::Circle;
 use crate::link::{CircleLink, ParticleLink};
 use crate::particle::Particle;
 use crate::polygon::Polygon;
+use crate::spring::Spring;
 use nalgebra::Vector2;
 
 pub enum ColliderType {
@@ -23,6 +24,7 @@ pub struct Solver {
     pub bounds_active: bool,
     particles: Vec<Particle>,
     particle_links: Vec<ParticleLink>,
+    particle_springs: Vec<Spring>,
     circles: Vec<Circle>,
     circle_links: Vec<CircleLink>,
     polygons: Vec<Polygon>,
@@ -41,10 +43,11 @@ impl Solver {
             bounds_active: true,
             particles: Vec::new(),
             particle_links: Vec::new(),
+            particle_springs: Vec::new(),
             circles: Vec::new(),
             circle_links: Vec::new(),
             polygons: Vec::new(),
-            sub_steps: 1,
+            sub_steps: 8,
             sub_steps_multiplier: 0.0,
         }
     }
@@ -66,6 +69,10 @@ impl Solver {
         self.circle_links.push(link);
     }
 
+    pub fn add_particle_spring(&mut self, spring: Spring) {
+        self.particle_springs.push(spring);
+    }
+
     pub fn get_particle_len(&self) -> usize {
         self.particles.len()
     }
@@ -81,6 +88,10 @@ impl Solver {
     }
     pub fn get_circle_links(&self) -> &Vec<CircleLink> {
         &self.circle_links
+    }
+
+    pub fn get_particle_springs(&self) -> &Vec<Spring> {
+        &self.particle_springs
     }
 
     pub fn get_particles(&self) -> &Vec<Particle> {
@@ -109,6 +120,7 @@ impl Solver {
         for _ in 0..self.sub_steps {
             self.apply_gravity();
             self.apply_links();
+            self.apply_springs(dt);
             self.solve_dynamic_collisions();
             self.solve_boundary_collisions();
             self.update_positions(delta);
@@ -149,6 +161,15 @@ impl Solver {
         }
         for polygon in self.polygons.iter_mut() {
             polygon.solve_links();
+        }
+    }
+
+    fn apply_springs(&mut self, dt: f32) {
+        for spring in self.particle_springs.iter_mut() {
+            spring.solve(&mut self.particles, dt);
+        }
+        for polygons in self.polygons.iter_mut() {
+            polygons.solve_springs(dt);
         }
     }
 
