@@ -24,9 +24,10 @@ impl ParticleLink {
         // let normal = dist_vec.normalize();
         // particle_a.pos -= normal * (dist - self.link.target_distance) * 0.5;
         // particle_b.pos += normal * (dist - self.link.target_distance) * 0.5;
-        let diff = (dist - self.link.target_distance) / dist;
-        particle_a.pos -= dist_vec * diff * 0.5;
-        particle_b.pos += dist_vec * diff * 0.5;
+        let diff = (dist - self.link.target_distance)
+            / (dist * (particle_a.inv_mass + particle_b.inv_mass));
+        particle_a.pos -= particle_a.inv_mass * dist_vec * diff * 0.5;
+        particle_b.pos += particle_b.inv_mass * dist_vec * diff * 0.5;
     }
 }
 
