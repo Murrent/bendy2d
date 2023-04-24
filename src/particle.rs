@@ -6,6 +6,7 @@ pub struct Particle {
     pub pos: Vector2<f32>,
     pub prev_pos: Vector2<f32>,
     pub friction: f32,
+    pub inv_mass: f32,
     acc: Vector2<f32>,
 }
 
@@ -15,8 +16,13 @@ impl Particle {
             pos,
             prev_pos: pos,
             friction: 1.0,
+            inv_mass: 1.0,
             acc: Vector2::new(0.0, 0.0),
         }
+    }
+
+    pub fn set_mass(&mut self, mass: f32) {
+        self.inv_mass = 1.0 / mass;
     }
 
     pub fn update(&mut self, dt: f32) {
