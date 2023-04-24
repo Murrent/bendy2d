@@ -25,7 +25,9 @@ impl Spring {
 
         let delta = particle_b.pos - particle_a.pos;
         let delta_length = delta.magnitude();
-        if delta_length == 0.0 { return; }
+        if delta_length == 0.0 {
+            return;
+        }
         let delta_normal = delta / delta_length;
 
         let difference = (delta_length - self.rest_length) / delta_length;
