@@ -52,7 +52,10 @@ pub fn proj_point_on_line(point: Vector2<f32>, line: (Vector2<f32>, Vector2<f32>
 }
 
 #[inline]
-pub fn is_point_in_triangle(point: Vector2<f32>, triangle: (Vector2<f32>, Vector2<f32>, Vector2<f32>)) -> bool {
+pub fn is_point_in_triangle(
+    point: Vector2<f32>,
+    triangle: (Vector2<f32>, Vector2<f32>, Vector2<f32>),
+) -> bool {
     let (a, b, c) = triangle;
     let v0 = c - a;
     let v1 = b - a;
