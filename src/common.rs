@@ -50,3 +50,24 @@ pub fn proj_point_on_line(point: Vector2<f32>, line: (Vector2<f32>, Vector2<f32>
     let proj = proj_a_on_b_clamped(point_vec, line_vec);
     l_start + proj
 }
+
+#[inline]
+pub fn is_point_in_triangle(point: Vector2<f32>, triangle: (Vector2<f32>, Vector2<f32>, Vector2<f32>)) -> bool {
+    let (a, b, c) = triangle;
+    let v0 = c - a;
+    let v1 = b - a;
+    let v2 = point - a;
+
+    let dot00 = v0.dot(&v0);
+    let dot01 = v0.dot(&v1);
+    let dot02 = v0.dot(&v2);
+    let dot11 = v1.dot(&v1);
+    let dot12 = v1.dot(&v2);
+
+    let inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+
+    let u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
+    let v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
+
+    (u >= 0.0) && (v >= 0.0) && (u + v < 1.0)
+}
