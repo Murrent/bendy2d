@@ -114,13 +114,20 @@ impl Solver {
         self.polygons.get(index)
     }
 
+    pub fn get_particle_mut(&mut self, index: usize) -> Option<&mut Particle> {
+        self.particles.get_mut(index)
+    }
+    pub fn get_polygon_mut(&mut self, index: usize) -> Option<&mut Polygon> {
+        self.polygons.get_mut(index)
+    }
+
     pub fn update(&mut self, dt: f32) {
         self.sub_steps_multiplier = 1.0 / self.sub_steps as f32;
         let delta = dt * self.sub_steps_multiplier;
         for _ in 0..self.sub_steps {
             self.apply_gravity();
             self.apply_links();
-            self.apply_springs(dt);
+            self.apply_springs(delta);
             self.solve_dynamic_collisions();
             self.solve_boundary_collisions();
             self.update_positions(delta);
