@@ -14,6 +14,7 @@ pub struct Polygon {
     pub center: Vector2<f32>,
     pub scale: f32,
     pub pressure: f32,
+    pub volume: f32,
 }
 
 impl Polygon {
@@ -86,6 +87,7 @@ impl Polygon {
             center,
             scale: 1.0,
             pressure: 1.0,
+            volume: radius * radius * std::f32::consts::PI,
         }
     }
 
@@ -129,6 +131,7 @@ impl Polygon {
             center,
             scale: 1.0,
             pressure: 1.0,
+            volume: 1.0,
         }
     }
 
@@ -205,11 +208,14 @@ impl Polygon {
         // pen_vector projected onto the normal
         let pen_on_normal = (normal_in.dot(&pen_vector) / normal_in.dot(&normal_in)) * normal_in;
         // The impulse
-        let impulse = pen_on_normal / (others_point.inv_mass + point_a.inv_mass + point_b.inv_mass);
+        let impulse = pen_on_normal
+            / (others_point.inv_mass.powf(2.0)
+                + point_a.inv_mass.powf(2.0)
+                + point_b.inv_mass.powf(2.0));
         // A third of the displacement
-        let displace_point = impulse * others_point.inv_mass;
+        let displace_point = impulse * others_point.inv_mass.powf(2.0);
         // The displacement total for the line
-        let displace_line = impulse * (point_a.inv_mass + point_b.inv_mass);
+        let displace_line = impulse * (point_a.inv_mass.powf(2.0) + point_b.inv_mass.powf(2.0));
         // The displacement for a and b
         let displacement_a = influence_a * displace_line;
         let displacement_b = influence_b * displace_line;
@@ -222,9 +228,8 @@ impl Polygon {
             (others_point.pos, others_point.pos - normal_in * 10000.0),
         );
         if let Some(new_point) = intersection_result {
-            // let vel_after = others_point.prev_pos - others_point.pos;
-            // let pen_on_line = proj_a_on_b(vel_after, line_normalized);
-            // let pen_mag = pen_on_normal.magnitude();
+            let vel_after = others_point.prev_pos - others_point.pos;
+            let pen_mag = pen_on_normal.magnitude();
             {
                 // I think that the problem is that the friction is based on the direction of the point to the center
                 // With friction, according to the definition from the paper we should somehow get the penetration
@@ -233,8 +238,12 @@ impl Polygon {
 
                 others_point.pos = new_point;
                 // let vel_on_line = proj_a_on_b(vel_after, line_normalized);
-                // let friction = clamp(pen_mag * others_point.friction, 0.0, vel_on_line.magnitude());
-                // let friction_vec = pen_on_line * friction;
+                // let friction = clamp(
+                //     pen_mag * others_point.friction,
+                //     0.0,
+                //     vel_on_line.magnitude(),
+                // );
+                // let friction_vec = vel_after * friction;
                 // others_point.pos += friction_vec;
             }
             {
