@@ -47,7 +47,7 @@ impl Solver {
             circles: Vec::new(),
             circle_links: Vec::new(),
             polygons: Vec::new(),
-            sub_steps: 8,
+            sub_steps: 1,
             sub_steps_multiplier: 0.0,
         }
     }
@@ -149,13 +149,13 @@ impl Solver {
     fn apply_gravity(&mut self) {
         let gravity = self.gravity;
         for particle in self.particles.iter_mut() {
-            particle.add_force_v2(gravity);
+            particle.gravity(gravity.x, gravity.y);
         }
         for circle in self.circles.iter_mut() {
-            circle.point.add_force_v2(gravity);
+            circle.point.gravity(gravity.x, gravity.y);
         }
         for polygon in self.polygons.iter_mut() {
-            polygon.add_force_v2(gravity);
+            polygon.gravity(gravity.x, gravity.y);
         }
     }
 
@@ -203,6 +203,9 @@ impl Solver {
                 circle_i.solve_circle(circle_j);
             }
         }
+        self.polygons.iter_mut().for_each(|polygon| {
+            polygon.collisions.clear();
+        });
         let length = self.polygons.len();
         for i in 0..length {
             let start_index = i + 1;
