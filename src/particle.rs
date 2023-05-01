@@ -62,16 +62,21 @@ impl Particle {
         }
     }
 
+    pub fn gravity(&mut self, gravity_x: f32, gravity_y: f32) {
+        self.acc.x += gravity_x;
+        self.acc.y += gravity_y;
+    }
+
     pub fn add_force(&mut self, force_x: f32, force_y: f32) {
-        self.acc += Vector2::new(force_x, force_y);
+        self.acc += Vector2::new(force_x, force_y) * self.inv_mass;
     }
 
     pub fn add_force_v2(&mut self, force: Vector2<f32>) {
-        self.acc += force;
+        self.acc += force * self.inv_mass;
     }
 
     pub fn add_force_towards(&mut self, point: Vector2<f32>, force: f32) {
         let dist: Vector2<f32> = (point - self.pos).normalize();
-        self.acc += dist * force;
+        self.acc += dist * force * self.inv_mass;
     }
 }
