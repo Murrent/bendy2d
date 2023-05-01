@@ -5,6 +5,36 @@ use crate::solver::Bounds;
 use crate::spring::Spring;
 use nalgebra::{clamp, Vector2};
 
+// TODO: remove this
+#[derive(Debug, Copy, Clone)]
+pub struct Collision {
+    pub intersection: Vector2<f32>,
+    pub point_a: Particle,
+    pub point_b: Particle,
+    pub point: Particle,
+    pub line_normalized: Vector2<f32>,
+    pub center_proj: Vector2<f32>,
+    pub center: Vector2<f32>,
+    pub normal_in: Vector2<f32>,
+    pub point_proj: Vector2<f32>,
+    pub real_intersection: Vector2<f32>,
+    pub dist_to_a: f32,
+    pub dist_to_b: f32,
+    pub dist_a_to_b: f32,
+    pub influence_a: f32,
+    pub influence_b: f32,
+    pub pen_vector: Vector2<f32>,
+    pub pen_on_normal: Vector2<f32>,
+    pub impulse: Vector2<f32>,
+    pub displace_point: Vector2<f32>,
+    pub displace_line: Vector2<f32>,
+    pub displacement_a: Vector2<f32>,
+    pub displacement_b: Vector2<f32>,
+    pub new_a: Vector2<f32>,
+    pub new_b: Vector2<f32>,
+    pub new_point: Vector2<f32>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Polygon {
     pub particles: Vec<Particle>,
@@ -15,6 +45,7 @@ pub struct Polygon {
     pub scale: f32,
     pub pressure: f32,
     pub volume: f32,
+    pub collisions: Vec<Collision>,
 }
 
 impl Polygon {
@@ -88,6 +119,7 @@ impl Polygon {
             scale: 1.0,
             pressure: 1.0,
             volume: radius * radius * std::f32::consts::PI,
+            collisions: vec![],
         }
     }
 
@@ -132,6 +164,7 @@ impl Polygon {
             scale: 1.0,
             pressure: 1.0,
             volume: 1.0,
+            collisions: vec![],
         }
     }
 
@@ -210,8 +243,8 @@ impl Polygon {
         // The impulse
         let impulse = pen_on_normal
             / (others_point.inv_mass.powf(2.0)
-                + point_a.inv_mass.powf(2.0)
-                + point_b.inv_mass.powf(2.0));
+            + point_a.inv_mass.powf(2.0)
+            + point_b.inv_mass.powf(2.0));
         // A third of the displacement
         let displace_point = impulse * others_point.inv_mass.powf(2.0);
         // The displacement total for the line
@@ -230,6 +263,33 @@ impl Polygon {
         if let Some(new_point) = intersection_result {
             let vel_after = others_point.prev_pos - others_point.pos;
             let pen_mag = pen_on_normal.magnitude();
+            self.collisions.push(Collision {
+                intersection,
+                point_a: point_a.clone(),
+                point_b: point_b.clone(),
+                point: others_point.clone(),
+                line_normalized,
+                center_proj,
+                center: self.center,
+                normal_in,
+                point_proj,
+                real_intersection,
+                dist_to_a,
+                dist_to_b,
+                dist_a_to_b,
+                influence_a,
+                influence_b,
+                pen_vector,
+                pen_on_normal,
+                impulse,
+                displace_point,
+                displace_line,
+                displacement_a,
+                displacement_b,
+                new_a,
+                new_b,
+                new_point,
+            });
             {
                 // I think that the problem is that the friction is based on the direction of the point to the center
                 // With friction, according to the definition from the paper we should somehow get the penetration
@@ -267,6 +327,12 @@ impl Polygon {
     pub fn solve_springs(&mut self, dt: f32) {
         for spring in &mut self.particle_springs {
             spring.solve(&mut self.particles, dt);
+        }
+    }
+
+    pub fn gravity(&mut self, gravity_x: f32, gravity_y: f32) {
+        for point in &mut self.particles {
+            point.gravity(gravity_x, gravity_y);
         }
     }
 
