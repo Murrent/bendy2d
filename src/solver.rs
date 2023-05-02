@@ -28,6 +28,7 @@ pub struct Solver {
     circles: Vec<Circle>,
     circle_links: Vec<CircleLink>,
     polygons: Vec<Polygon>,
+    static_lines: Vec<(Vector2<f32>, Vector2<f32>)>,
     sub_steps: u16,
     sub_steps_multiplier: f32,
 }
@@ -47,6 +48,7 @@ impl Solver {
             circles: Vec::new(),
             circle_links: Vec::new(),
             polygons: Vec::new(),
+            static_lines: Vec::new(),
             sub_steps: 1,
             sub_steps_multiplier: 0.0,
         }
@@ -60,6 +62,9 @@ impl Solver {
     }
     pub fn add_polygon(&mut self, polygon: Polygon) {
         self.polygons.push(polygon);
+    }
+    pub fn add_static_line(&mut self, line: (Vector2<f32>, Vector2<f32>)) {
+        self.static_lines.push(line);
     }
 
     pub fn add_particle_link(&mut self, link: ParticleLink) {
@@ -102,6 +107,9 @@ impl Solver {
     }
     pub fn get_polygons(&self) -> &Vec<Polygon> {
         &self.polygons
+    }
+    pub fn get_static_lines(&self) -> &Vec<(Vector2<f32>, Vector2<f32>)> {
+        &self.static_lines
     }
 
     pub fn get_particle(&self, index: usize) -> Option<&Particle> {
@@ -189,6 +197,9 @@ impl Solver {
         }
         for polygon in self.polygons.iter_mut() {
             polygon.solve_bounds(self.bounds);
+            // for line in self.static_lines.iter_mut() {
+            //     polygon.solve_static_line(*line);
+            // }
         }
     }
 
