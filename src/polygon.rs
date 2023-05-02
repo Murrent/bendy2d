@@ -24,8 +24,7 @@ pub struct Collision {
     pub influence_a: f32,
     pub influence_b: f32,
     pub pen_vector: Vector2<f32>,
-    pub pen_on_normal: Vector2<f32>,
-    pub impulse: Vector2<f32>,
+    pub total_displacement: Vector2<f32>,
     pub displace_point: Vector2<f32>,
     pub displace_line: Vector2<f32>,
     pub displacement_a: Vector2<f32>,
@@ -185,6 +184,19 @@ impl Polygon {
         }
     }
 
+    // pub fn solve_static_line(&mut self, line: (Vector2<f32>, Vector2<f32>)) {
+    //     for i in 0..self.particles.len() {
+    //         let result =
+    //             line_intersection(line, (self.particles[i].pos, self.center));
+    //
+    //         if let Some(intersection) = result {
+    //             if let Some(new_point) = self.resolve_static_line_intersection(intersection, i, line) {
+    //                 self.particles[i].pos = new_point;
+    //             }
+    //         }
+    //     }
+    // }
+
     pub fn solve_polygon(&mut self, other: &mut Polygon) {
         self.solve_polygon_single(other);
         other.solve_polygon_single(self);
@@ -238,84 +250,118 @@ impl Polygon {
         let influence_b = dist_to_a / dist_a_to_b;
         // The penetration vector, between intersection and point
         let pen_vector = real_intersection - others_point.pos;
-        // pen_vector projected onto the normal
-        let pen_on_normal = (normal_in.dot(&pen_vector) / normal_in.dot(&normal_in)) * normal_in;
         // The impulse
-        let impulse = pen_on_normal
-            / (others_point.inv_mass.powf(2.0)
-            + point_a.inv_mass.powf(2.0)
-            + point_b.inv_mass.powf(2.0));
+        let total_displacement = pen_vector
+            / (others_point.inv_mass
+            + point_a.inv_mass
+            + point_b.inv_mass);
         // A third of the displacement
-        let displace_point = impulse * others_point.inv_mass.powf(2.0);
+        let displace_point = total_displacement * (point_a.inv_mass + point_b.inv_mass);
         // The displacement total for the line
-        let displace_line = impulse * (point_a.inv_mass.powf(2.0) + point_b.inv_mass.powf(2.0));
-        // The displacement for a and b
-        let displacement_a = influence_a * displace_line;
-        let displacement_b = influence_b * displace_line;
-        // The new positions
-        let new_a = point_a.pos - displacement_a;
-        let new_b = point_b.pos - displacement_b;
-        // The new position for the point
-        let intersection_result = line_intersection(
-            (point_a.pos, point_b.pos),
-            (others_point.pos, others_point.pos - normal_in * 10000.0),
-        );
-        if let Some(new_point) = intersection_result {
-            let vel_after = others_point.prev_pos - others_point.pos;
-            let pen_mag = pen_on_normal.magnitude();
-            self.collisions.push(Collision {
-                intersection,
-                point_a: point_a.clone(),
-                point_b: point_b.clone(),
-                point: others_point.clone(),
-                line_normalized,
-                center_proj,
-                center: self.center,
-                normal_in,
-                point_proj,
-                real_intersection,
-                dist_to_a,
-                dist_to_b,
-                dist_a_to_b,
-                influence_a,
-                influence_b,
-                pen_vector,
-                pen_on_normal,
-                impulse,
-                displace_point,
-                displace_line,
-                displacement_a,
-                displacement_b,
-                new_a,
-                new_b,
-                new_point,
-            });
-            {
-                // I think that the problem is that the friction is based on the direction of the point to the center
-                // With friction, according to the definition from the paper we should somehow get the penetration
-                // vector based on the previous position and the current position, instead of the current position and the center
-                // TODO: implement a new collision detection algorithm that projects the penetration vector onto the closest line
+        let displace_line = -total_displacement * others_point.inv_mass;
 
-                others_point.pos = new_point;
-                // let vel_on_line = proj_a_on_b(vel_after, line_normalized);
-                // let friction = clamp(
-                //     pen_mag * others_point.friction,
-                //     0.0,
-                //     vel_on_line.magnitude(),
-                // );
-                // let friction_vec = vel_after * friction;
-                // others_point.pos += friction_vec;
-            }
-            {
-                let particle_a = &mut self.particles[a_id];
-                particle_a.pos = new_a;
-            }
-            {
-                let particle_b = &mut self.particles[b_id];
-                particle_b.pos = new_b;
-            }
+        // // TEST!
+        let qp_delta = -displace_point;
+        let c_delta = (influence_a * influence_a + influence_b * influence_b);
+        let delta_squared = qp_delta.dot(&qp_delta);
+        let bottom = c_delta * delta_squared;
+        if bottom == 0.0 {
+            return;
+        }
+        let lambda = delta_squared / bottom;
+
+
+        // let a_proportion = point_a.inv_mass / (point_a.inv_mass + point_b.inv_mass);
+        // let b_proportion = point_b.inv_mass / (point_a.inv_mass + point_b.inv_mass);
+
+        // The displacement for a and b, 0.5 because the mass is shared between them
+        let displacement_a = lambda * influence_a * qp_delta * 0.5;//influence_a * displace_line;
+        let displacement_b = lambda * influence_b * qp_delta * 0.5;//influence_b * displace_line;
+        // The new positions
+        let new_a = point_a.pos + displacement_a;
+        let new_b = point_b.pos + displacement_b;
+        let new_point = others_point.pos + displace_point;
+        self.collisions.push(Collision {
+            intersection,
+            point_a: point_a.clone(),
+            point_b: point_b.clone(),
+            point: others_point.clone(),
+            line_normalized,
+            center_proj,
+            center: self.center,
+            normal_in,
+            point_proj,
+            real_intersection,
+            dist_to_a,
+            dist_to_b,
+            dist_a_to_b,
+            influence_a,
+            influence_b,
+            pen_vector,
+            total_displacement,
+            displace_point,
+            displace_line,
+            displacement_a,
+            displacement_b,
+            new_a,
+            new_b,
+            new_point,
+        });
+        {
+            // I think that the problem is that the friction is based on the direction of the point to the center
+            // With friction, according to the definition from the paper we should somehow get the penetration
+            // vector based on the previous position and the current position, instead of the current position and the center
+            // TODO: implement a new collision detection algorithm that projects the penetration vector onto the closest line
+
+            others_point.pos = new_point;
+            // let vel_on_line = proj_a_on_b(vel_after, line_normalized);
+            // let friction = clamp(
+            //     pen_mag * others_point.friction,
+            //     0.0,
+            //     vel_on_line.magnitude(),
+            // );
+            // let friction_vec = vel_after * friction;
+            // others_point.pos += friction_vec;
+        }
+        {
+            let particle_a = &mut self.particles[a_id];
+            particle_a.pos = new_a;
+        }
+        {
+            let particle_b = &mut self.particles[b_id];
+            particle_b.pos = new_b;
         }
     }
+
+    // fn resolve_static_line_intersection(
+    //     &self,
+    //     intersection: Vector2<f32>,
+    //     point_id: usize,
+    //     line: (Vector2<f32>, Vector2<f32>),
+    // ) -> Option<Vector2<f32>> {
+    //     let (p1, p2) = line;
+    //
+    //     // The line normal
+    //     let line_normalized = (p2 - p1).normalize();
+    //     // The center point projected onto the line
+    //     let center_proj = (line_normalized.dot(&(self.center - intersection))
+    //         / line_normalized.dot(&line_normalized))
+    //         * line_normalized;
+    //     // The normal, inward facing from the line
+    //     let normal_in = (self.center - (intersection + center_proj)).normalize();
+    //     let point = &self.particles[point_id];
+    //     // The new position for the point
+    //     let intersection_result = line_intersection(
+    //         (p1, p2),
+    //         (point.pos, point.pos - normal_in * 10000.0),
+    //     );
+    //     if let Some(new_point) = intersection_result {
+    //         {
+    //             new_point;
+    //         }
+    //     }
+    //     None
+    // }
 
     pub fn solve_links(&mut self) {
         self.calc_center();
