@@ -251,10 +251,8 @@ impl Polygon {
         // The penetration vector, between intersection and point
         let pen_vector = real_intersection - others_point.pos;
         // The impulse
-        let total_displacement = pen_vector
-            / (others_point.inv_mass
-            + point_a.inv_mass
-            + point_b.inv_mass);
+        let total_displacement =
+            pen_vector / (others_point.inv_mass + point_a.inv_mass + point_b.inv_mass);
         // A third of the displacement
         let displace_point = total_displacement * (point_a.inv_mass + point_b.inv_mass);
         // The displacement total for the line
@@ -270,14 +268,13 @@ impl Polygon {
         }
         let lambda = delta_squared / bottom;
 
-
         // let a_proportion = point_a.inv_mass / (point_a.inv_mass + point_b.inv_mass);
         // let b_proportion = point_b.inv_mass / (point_a.inv_mass + point_b.inv_mass);
 
         // The displacement for a and b, 0.5 because the mass is shared between them
-        let displacement_a = lambda * influence_a * qp_delta * 0.5;//influence_a * displace_line;
-        let displacement_b = lambda * influence_b * qp_delta * 0.5;//influence_b * displace_line;
-        // The new positions
+        let displacement_a = lambda * influence_a * qp_delta * 0.5; //influence_a * displace_line;
+        let displacement_b = lambda * influence_b * qp_delta * 0.5; //influence_b * displace_line;
+                                                                    // The new positions
         let new_a = point_a.pos + displacement_a;
         let new_b = point_b.pos + displacement_b;
         let new_point = others_point.pos + displace_point;
