@@ -30,9 +30,9 @@ impl Particle {
         let vel = self.pos - self.prev_pos;
         self.prev_pos = self.pos;
         let mut total_vel = vel + self.acc * dt * dt;
-        if total_vel.magnitude() > 2.0 {
-            total_vel = total_vel.normalize() * 2.0;
-        }
+        // if total_vel.magnitude() > 2.0 {
+        //     total_vel = total_vel.normalize() * 2.0;
+        // }
         self.pos = self.pos + total_vel;
         self.acc = Vector2::new(0.0, 0.0);
     }
