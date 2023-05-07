@@ -54,17 +54,21 @@ impl Solver {
         }
     }
 
-    pub fn add_particle(&mut self, pos: Vector2<f32>) {
+    pub fn add_particle(&mut self, pos: Vector2<f32>) -> usize {
         self.particles.push(Particle::new(pos));
+        self.particles.len() - 1
     }
-    pub fn add_circle(&mut self, circle: Circle) {
+    pub fn add_circle(&mut self, circle: Circle) -> usize {
         self.circles.push(circle);
+        self.circles.len() - 1
     }
-    pub fn add_polygon(&mut self, polygon: Polygon) {
+    pub fn add_polygon(&mut self, polygon: Polygon) -> usize {
         self.polygons.push(polygon);
+        self.polygons.len() - 1
     }
-    pub fn add_static_line(&mut self, line: (Vector2<f32>, Vector2<f32>)) {
+    pub fn add_static_line(&mut self, line: (Vector2<f32>, Vector2<f32>)) -> usize {
         self.static_lines.push(line);
+        self.static_lines.len() - 1
     }
 
     pub fn add_particle_link(&mut self, link: ParticleLink) {
