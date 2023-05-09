@@ -36,7 +36,7 @@ pub struct Solver {
 impl Solver {
     pub fn new() -> Self {
         Self {
-            gravity: Vector2::new(0.0, 98.2),
+            gravity: Vector2::new(0.0, 9.8),
             bounds: Bounds {
                 pos: Vector2::new(0.0, 0.0),
                 size: Vector2::new(100.0, 100.0),
@@ -49,7 +49,7 @@ impl Solver {
             circle_links: Vec::new(),
             polygons: Vec::new(),
             static_lines: Vec::new(),
-            sub_steps: 1,
+            sub_steps: 8,
             sub_steps_multiplier: 0.0,
         }
     }
