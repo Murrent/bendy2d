@@ -8,6 +8,7 @@ pub struct Particle {
     pub friction: f32,
     pub inv_mass: f32,
     acc: Vector2<f32>,
+    damping: f32,
 }
 
 impl Particle {
@@ -18,6 +19,7 @@ impl Particle {
             friction: 1.0,
             inv_mass: 1.0,
             acc: Vector2::new(0.0, 0.0),
+            damping: 0.9,
         }
     }
 
@@ -30,6 +32,7 @@ impl Particle {
         let vel = self.pos - self.prev_pos;
         self.prev_pos = self.pos;
         let mut total_vel = vel + self.acc * dt * dt;
+        total_vel *= self.damping.powf(dt);
         // if total_vel.magnitude() > 2.0 {
         //     total_vel = total_vel.normalize() * 2.0;
         // }
