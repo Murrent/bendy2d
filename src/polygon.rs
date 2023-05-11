@@ -1,4 +1,4 @@
-use crate::common::{line_intersection, proj_a_on_b};
+use crate::common::{aabb_vs_aabb, line_intersection, proj_a_on_b, proj_point_on_line};
 use crate::link::{Link, ParticleLink};
 use crate::particle::Particle;
 use crate::solver::Bounds;
@@ -12,11 +12,7 @@ pub struct Collision {
     pub point_a: Particle,
     pub point_b: Particle,
     pub point: Particle,
-    pub line_normalized: Vector2<f32>,
-    pub center_proj: Vector2<f32>,
     pub center: Vector2<f32>,
-    pub normal_in: Vector2<f32>,
-    pub point_proj: Vector2<f32>,
     pub real_intersection: Vector2<f32>,
     pub dist_to_a: f32,
     pub dist_to_b: f32,
@@ -45,6 +41,7 @@ pub struct Polygon {
     pub pressure: f32,
     pub volume: f32,
     pub collisions: Vec<Collision>,
+    pub bounds: Bounds,
 }
 
 impl Polygon {
@@ -119,6 +116,10 @@ impl Polygon {
             pressure: 1.0,
             volume: radius * radius * std::f32::consts::PI,
             collisions: vec![],
+            bounds: Bounds {
+                pos: Vector2::new(0.0, 0.0),
+                size: Vector2::new(0.0, 0.0),
+            },
         }
     }
 
@@ -192,6 +193,10 @@ impl Polygon {
             pressure: 1.0,
             volume: mass,
             collisions: vec![],
+            bounds: Bounds {
+                pos: Vector2::new(0.0, 0.0),
+                size: Vector2::new(0.0, 0.0),
+            },
         }
     }
 
@@ -237,6 +242,10 @@ impl Polygon {
             pressure: 1.0,
             volume: 1.0,
             collisions: vec![],
+            bounds: Bounds {
+                pos: Vector2::new(0.0, 0.0),
+                size: Vector2::new(0.0, 0.0),
+            },
         }
     }
 
@@ -251,12 +260,23 @@ impl Polygon {
         }
 
         self.calc_center();
+        self.update_bounds();
     }
 
     pub fn solve_bounds(&mut self, bounds: Bounds) {
         for point in &mut self.particles {
             point.solve_bounds(bounds);
         }
+    }
+
+    pub fn update_bounds(&mut self) {
+        let mut particle_positions = self.particles.iter().map(|p| p.pos).collect::<Vec<_>>();
+        particle_positions.sort_by(|a, b| a.x.partial_cmp(&b.x).unwrap());
+        self.bounds.pos.x = particle_positions[0].x;
+        self.bounds.size.x = particle_positions[particle_positions.len() - 1].x - self.bounds.pos.x;
+        particle_positions.sort_by(|a, b| a.y.partial_cmp(&b.y).unwrap());
+        self.bounds.pos.y = particle_positions[0].y;
+        self.bounds.size.y = particle_positions[particle_positions.len() - 1].y - self.bounds.pos.y;
     }
 
     // pub fn solve_static_line(&mut self, line: (Vector2<f32>, Vector2<f32>)) {
@@ -273,23 +293,69 @@ impl Polygon {
     // }
 
     pub fn solve_polygon(&mut self, other: &mut Polygon) {
-        self.solve_polygon_single(other);
-        other.solve_polygon_single(self);
+        if aabb_vs_aabb(self.bounds, other.bounds) {
+            self.solve_polygon_single(other);
+            other.solve_polygon_single(self);
+            // This might not need to happen every aabb_vs_aabb check but it's fine for now
+            self.update_bounds();
+            other.update_bounds();
+        }
     }
 
     pub fn solve_polygon_single(&mut self, other: &mut Polygon) {
-        for a_id in 0..self.particles.len() {
-            let point_a = self.particles[a_id];
-            let b_id = (a_id + 1) % self.particles.len();
-            let point_b = self.particles[b_id];
-            for others_point in &mut other.particles {
+        // We need to check if any of the points of the other polygon are inside this polygon
+        // If we find one, project it on all the lines of this polygon and pick the closest one
+        // Then resolve the collision
+        // TODO: Debug this
+        for others_point in &mut other.particles {
+            let mut intersction_count = 0;
+            for a_id in 0..self.particles.len() {
+                let point_a = self.particles[a_id];
+                let b_id = (a_id + 1) % self.particles.len();
+                let point_b = self.particles[b_id];
                 let result =
-                    line_intersection((point_a.pos, point_b.pos), (others_point.pos, other.center));
-                if let Some(intersection) = result {
-                    self.resolve_line_intersection(intersection, a_id, b_id, others_point);
+                    line_intersection((point_a.pos, point_b.pos), (others_point.pos, self.bounds.pos - Vector2::new(1.0, 1.0)));
+
+                if result != None {
+                    intersction_count += 1;
+                }
+            }
+
+            if intersction_count % 2 == 1 {
+                let mut closest_point: Option<(Vector2<f32>, Vector2<usize>)>= None;
+                for a_id in 0..self.particles.len() {
+                    let point_a = self.particles[a_id];
+                    let b_id = (a_id + 1) % self.particles.len();
+                    let point_b = self.particles[b_id];
+                    let result = proj_point_on_line(others_point.pos, (point_a.pos, point_b.pos));
+
+                    if let Some(closest) = closest_point {
+                        if (result - others_point.pos).magnitude() < (closest.0 - others_point.pos).magnitude() {
+                            closest_point = Some((result, Vector2::new(a_id, b_id)));
+                        }
+                    } else {
+                        closest_point = Some((result, Vector2::new(a_id, b_id)));
+                    }
+                }
+                if let Some(closest) = closest_point {
+                    self.resolve_line_intersection(closest.0, closest.1.x, closest.1.y, others_point);
                 }
             }
         }
+
+        // for a_id in 0..self.particles.len() {
+        //     let point_a = self.particles[a_id];
+        //     let b_id = (a_id + 1) % self.particles.len();
+        //     let point_b = self.particles[b_id];
+        //     for others_point in &mut other.particles {
+        //         let result =
+        //             line_intersection((point_a.pos, point_b.pos), (others_point.pos, other.center));
+        //
+        //         if let Some(intersection) = result {
+        //             self.resolve_line_intersection(intersection, a_id, b_id, others_point);
+        //         }
+        //     }
+        // }
     }
 
     pub fn resolve_line_intersection(
@@ -302,19 +368,7 @@ impl Polygon {
         let point_a = &self.particles[a_id];
         let point_b = &self.particles[b_id];
 
-        // The line normal
-        let line_normalized = (point_b.pos - point_a.pos).normalize();
-        // The center point projected onto the line
-        let center_proj = (line_normalized.dot(&(self.center - intersection))
-            / line_normalized.dot(&line_normalized))
-            * line_normalized;
-        // The normal, inward facing from the line
-        let normal_in = (self.center - (intersection + center_proj)).normalize();
-        // We project the current position of the point onto the normal
-        let point_proj = (line_normalized.dot(&(others_point.pos - intersection))
-            / line_normalized.dot(&line_normalized))
-            * line_normalized;
-        let real_intersection = intersection + point_proj;
+        let real_intersection = intersection;
         // We calculate the distance from the intersection point to a and b
         let dist_to_a = (real_intersection - point_a.pos).magnitude();
         let dist_to_b = (real_intersection - point_b.pos).magnitude();
@@ -358,11 +412,7 @@ impl Polygon {
             point_a: point_a.clone(),
             point_b: point_b.clone(),
             point: others_point.clone(),
-            line_normalized,
-            center_proj,
             center: self.center,
-            normal_in,
-            point_proj,
             real_intersection,
             dist_to_a,
             dist_to_b,
