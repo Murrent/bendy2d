@@ -1,4 +1,5 @@
 use nalgebra::Vector2;
+use crate::solver::Bounds;
 
 #[inline]
 pub fn line_intersection(
@@ -73,4 +74,12 @@ pub fn is_point_in_triangle(
     let v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
 
     (u >= 0.0) && (v >= 0.0) && (u + v < 1.0)
+}
+
+#[inline]
+pub fn aabb_vs_aabb(bounds1: Bounds, bounds2: Bounds) -> bool {
+    bounds1.pos.x < bounds2.pos.x + bounds2.size.x
+        && bounds1.pos.x + bounds1.size.x > bounds2.pos.x
+        && bounds1.pos.y < bounds2.pos.y + bounds2.size.y
+        && bounds1.pos.y + bounds1.size.y > bounds2.pos.y
 }
