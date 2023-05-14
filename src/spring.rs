@@ -18,7 +18,7 @@ impl Spring {
         }
     }
 
-    pub fn solve(&self, particles: &mut Vec<Particle>, dt: f32) {
+    pub fn solve(&mut self, particles: &mut Vec<Particle>, dt: f32) {
         let split = particles.split_at_mut(self.particle_b);
         let particle_a = &mut split.0[self.particle_a];
         let particle_b = &mut split.1[0];
@@ -30,7 +30,13 @@ impl Spring {
         }
         let delta_normal = delta / delta_length;
 
-        let difference = (delta_length - self.rest_length) / delta_length;
+
+        let mut difference = (delta_length - self.rest_length) / delta_length;
+        // Permanent deformation
+        // if difference < -0.1 {
+        //     self.rest_length = delta_length;
+        //     difference = (delta_length - self.rest_length) / delta_length;
+        // }
         let impulse = delta_normal * difference * self.stiffness;
 
         particle_a.pos += impulse * dt;
