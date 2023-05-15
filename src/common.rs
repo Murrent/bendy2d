@@ -1,5 +1,5 @@
-use nalgebra::Vector2;
 use crate::solver::Bounds;
+use nalgebra::Vector2;
 
 #[inline]
 pub fn line_intersection(
