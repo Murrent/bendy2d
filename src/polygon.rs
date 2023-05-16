@@ -51,6 +51,7 @@ impl Polygon {
         point_count: usize,
         is_static: bool,
         stiffness: f32,
+        permanence_threshold: f32,
     ) -> Self {
         let mut particles = Vec::new();
         let mut particle_links = Vec::new();
@@ -86,6 +87,7 @@ impl Polygon {
                     particle_b: b_id,
                     rest_length: dist_vec.magnitude(),
                     stiffness,
+                    permanence_threshold,
                 });
             }
             a_id = i;
@@ -103,6 +105,7 @@ impl Polygon {
                 particle_b: c_id,
                 rest_length: dist_vec.magnitude(),
                 stiffness,
+                permanence_threshold,
             });
         }
 
@@ -193,6 +196,7 @@ impl Polygon {
         mass: f32,
         stiffness: f32,
         is_static: bool,
+        permanence_threshold: f32,
     ) -> Self {
         let mut particles = Vec::new();
         let mut particle_links = Vec::new();
@@ -233,6 +237,7 @@ impl Polygon {
                     particle_b: b_id,
                     rest_length: dist_vec.magnitude(),
                     stiffness,
+                    permanence_threshold,
                 });
             }
             a_id = i;
@@ -250,6 +255,7 @@ impl Polygon {
                 particle_b: c_id,
                 rest_length: dist_vec.magnitude(),
                 stiffness,
+                permanence_threshold,
             });
         }
 
@@ -269,55 +275,56 @@ impl Polygon {
             },
         }
     }
-
-    pub fn new(points: Vec<Vector2<f32>>, is_static: bool) -> Self {
-        let mut particles = Vec::new();
-        let mut particle_links = Vec::new();
-        let mut particle_springs = Vec::new();
-        let mut center = Vector2::new(0.0, 0.0);
-        for point in &points {
-            let particle = Particle::new(*point);
-            particles.push(particle);
-            center += particle.pos;
-        }
-        center /= points.len() as f32;
-
-        for i in 0..points.len() {
-            let mut a_id = i;
-            let mut b_id = (i + 1) % particles.len();
-            // Makes sure that a_id is always lower than b_id
-            if a_id > b_id {
-                let temp = a_id;
-                a_id = b_id;
-                b_id = temp;
-            }
-            let particle_a = &particles[a_id];
-            let particle_b = &particles[b_id];
-            let dist_vec = particle_a.pos - particle_b.pos;
-            particle_springs.push(Spring {
-                particle_a: a_id,
-                particle_b: b_id,
-                rest_length: dist_vec.magnitude(),
-                stiffness: 5.0,
-            });
-        }
-
-        Self {
-            particles,
-            particle_links,
-            particle_springs,
-            is_static,
-            center,
-            scale: 1.0,
-            pressure: 1.0,
-            volume: 1.0,
-            collisions: vec![],
-            bounds: Bounds {
-                pos: Vector2::new(0.0, 0.0),
-                size: Vector2::new(0.0, 0.0),
-            },
-        }
-    }
+    //
+    // pub fn new(points: Vec<Vector2<f32>>, is_static: bool) -> Self {
+    //     let mut particles = Vec::new();
+    //     let mut particle_links = Vec::new();
+    //     let mut particle_springs = Vec::new();
+    //     let mut center = Vector2::new(0.0, 0.0);
+    //     for point in &points {
+    //         let particle = Particle::new(*point);
+    //         particles.push(particle);
+    //         center += particle.pos;
+    //     }
+    //     center /= points.len() as f32;
+    //
+    //     for i in 0..points.len() {
+    //         let mut a_id = i;
+    //         let mut b_id = (i + 1) % particles.len();
+    //         // Makes sure that a_id is always lower than b_id
+    //         if a_id > b_id {
+    //             let temp = a_id;
+    //             a_id = b_id;
+    //             b_id = temp;
+    //         }
+    //         let particle_a = &particles[a_id];
+    //         let particle_b = &particles[b_id];
+    //         let dist_vec = particle_a.pos - particle_b.pos;
+    //         particle_springs.push(Spring {
+    //             particle_a: a_id,
+    //             particle_b: b_id,
+    //             rest_length: dist_vec.magnitude(),
+    //             stiffness: 5.0,
+    //             permanence_threshold,
+    //         });
+    //     }
+    //
+    //     Self {
+    //         particles,
+    //         particle_links,
+    //         particle_springs,
+    //         is_static,
+    //         center,
+    //         scale: 1.0,
+    //         pressure: 1.0,
+    //         volume: 1.0,
+    //         collisions: vec![],
+    //         bounds: Bounds {
+    //             pos: Vector2::new(0.0, 0.0),
+    //             size: Vector2::new(0.0, 0.0),
+    //         },
+    //     }
+    // }
 
     pub fn update(&mut self, dt: f32) {
         if self.is_static {
