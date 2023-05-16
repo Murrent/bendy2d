@@ -113,8 +113,71 @@ impl Polygon {
             is_static,
             center,
             scale: 1.0,
-            pressure: 1.0,
+            pressure: 0.0,
             volume: radius * radius * std::f32::consts::PI,
+            collisions: vec![],
+            bounds: Bounds {
+                pos: Vector2::new(0.0, 0.0),
+                size: Vector2::new(0.0, 0.0),
+            },
+        }
+    }
+
+    pub fn pressure_circle(
+        radius: f32,
+        pos: Vector2<f32>,
+        point_count: usize,
+        is_static: bool,
+        stiffness: f32,
+        pressure: f32,
+    ) -> Self {
+        let mut particles = Vec::new();
+        let mut particle_links = Vec::new();
+        let mut particle_springs = Vec::new();
+        let mut center = Vector2::new(0.0, 0.0);
+        let mut angle = 0.0;
+        let volume = radius * radius * std::f32::consts::PI;
+        for _ in 0..point_count {
+            let x = radius * f32::cos(angle);
+            let y = radius * f32::sin(angle);
+            let mut point = Particle::new(pos + Vector2::new(x, y));
+            point.set_mass(radius * radius * std::f32::consts::PI / point_count as f32);
+            particles.push(point);
+            center += point.pos;
+            angle += 2.0 * std::f32::consts::PI / point_count as f32;
+        }
+        center /= point_count as f32;
+
+        for i in 0..point_count {
+            let mut a_id = i;
+            a_id = i;
+            let mut c_id = (i + 1) % point_count;
+            if a_id > c_id {
+                let temp = a_id;
+                a_id = c_id;
+                c_id = temp;
+            }
+            let particle_a = &particles[a_id];
+            let particle_c = &particles[c_id];
+            let dist_vec = particle_a.pos - particle_c.pos;
+            particle_links.push(ParticleLink {
+                link: Link {
+                    particle_a: a_id,
+                    particle_b: c_id,
+                    target_distance: dist_vec.magnitude(),
+                },
+            });
+        }
+
+        Self {
+            particles,
+            particle_links,
+            particle_springs,
+            is_static,
+            center,
+            scale: 1.0,
+            pressure,
+            volume,
             collisions: vec![],
             bounds: Bounds {
                 pos: Vector2::new(0.0, 0.0),
@@ -262,6 +325,7 @@ impl Polygon {
         }
 
         self.calc_center();
+        self.apply_pressure(dt);
         for point in &mut self.particles {
             point.update(dt);
         }
@@ -273,6 +337,28 @@ impl Polygon {
     pub fn solve_bounds(&mut self, bounds: Bounds) {
         for point in &mut self.particles {
             point.solve_bounds(bounds);
+        }
+    }
+
+    pub fn apply_pressure(&mut self, dt: f32) {
+        let min_dist_center = self
+            .particles
+            .iter()
+            .map(|p| (p.pos - self.center).magnitude())
+            .min_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+        let max_dist_center = self
+            .particles
+            .iter()
+            .map(|p| (p.pos - self.center).magnitude())
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+        let current_volume = std::f32::consts::PI * min_dist_center * max_dist_center;
+        let current_pressure = (1.0 / current_volume) * self.volume * self.pressure;
+
+        for point in &mut self.particles {
+            let force = (point.pos - self.center).normalize() * current_pressure;
+            point.add_force_v2(force);
         }
     }
 
