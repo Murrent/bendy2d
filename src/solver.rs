@@ -136,8 +136,11 @@ impl Solver {
     pub fn update(&mut self, dt: f32) {
         self.sub_steps_multiplier = 1.0 / self.sub_steps as f32;
         let delta = dt * self.sub_steps_multiplier;
+        for polygon in self.polygons.iter_mut() {
+            polygon.apply_pressure();
+        }
+        self.apply_gravity();
         for _ in 0..self.sub_steps {
-            self.apply_gravity();
             self.apply_links();
             self.apply_springs(delta);
             self.solve_dynamic_collisions();
