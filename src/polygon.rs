@@ -65,7 +65,7 @@ impl Polygon {
             point.set_mass(radius * radius * std::f32::consts::PI / point_count as f32);
             particles.push(point);
             center += point.pos;
-            angle += 2.0 * std::f32::consts::PI / point_count as f32;
+            angle -= 2.0 * std::f32::consts::PI / point_count as f32;
         }
         center /= point_count as f32;
 
@@ -82,13 +82,13 @@ impl Polygon {
                 let particle_a = &particles[a_id];
                 let particle_b = &particles[b_id];
                 let dist_vec = particle_a.pos - particle_b.pos;
-                particle_springs.push(Spring {
-                    particle_a: a_id,
-                    particle_b: b_id,
-                    rest_length: dist_vec.magnitude(),
+                particle_springs.push(Spring::new(
+                    a_id,
+                    b_id,
+                    dist_vec.magnitude(),
                     stiffness,
                     permanence_threshold,
-                });
+                ));
             }
             a_id = i;
             let mut c_id = (i + 1) % point_count;
@@ -100,13 +100,13 @@ impl Polygon {
             let particle_a = &particles[a_id];
             let particle_c = &particles[c_id];
             let dist_vec = particle_a.pos - particle_c.pos;
-            particle_springs.push(Spring {
-                particle_a: a_id,
-                particle_b: c_id,
-                rest_length: dist_vec.magnitude(),
+            particle_springs.push(Spring::new(
+                a_id,
+                c_id,
+                dist_vec.magnitude(),
                 stiffness,
                 permanence_threshold,
-            });
+            ));
         }
 
         Self {
@@ -147,7 +147,7 @@ impl Polygon {
             point.set_mass(radius * radius * std::f32::consts::PI / point_count as f32);
             particles.push(point);
             center += point.pos;
-            angle += 2.0 * std::f32::consts::PI / point_count as f32;
+            angle -= 2.0 * std::f32::consts::PI / point_count as f32;
         }
         center /= point_count as f32;
 
@@ -232,13 +232,13 @@ impl Polygon {
                 let particle_a = &particles[a_id];
                 let particle_b = &particles[b_id];
                 let dist_vec = particle_a.pos - particle_b.pos;
-                particle_springs.push(Spring {
-                    particle_a: a_id,
-                    particle_b: b_id,
-                    rest_length: dist_vec.magnitude(),
+                particle_springs.push(Spring::new (
+                    a_id,
+                    b_id,
+                    dist_vec.magnitude(),
                     stiffness,
                     permanence_threshold,
-                });
+                ));
             }
             a_id = i;
             let mut c_id = (i + 1) % point_count;
@@ -250,13 +250,13 @@ impl Polygon {
             let particle_a = &particles[a_id];
             let particle_c = &particles[c_id];
             let dist_vec = particle_a.pos - particle_c.pos;
-            particle_springs.push(Spring {
-                particle_a: a_id,
-                particle_b: c_id,
-                rest_length: dist_vec.magnitude(),
+            particle_springs.push(Spring::new (
+                a_id,
+                c_id,
+                dist_vec.magnitude(),
                 stiffness,
                 permanence_threshold,
-            });
+            ));
         }
 
         Self {
@@ -332,7 +332,6 @@ impl Polygon {
         }
 
         self.calc_center();
-        self.apply_pressure(dt);
         for point in &mut self.particles {
             point.update(dt);
         }
@@ -347,7 +346,7 @@ impl Polygon {
         }
     }
 
-    pub fn apply_pressure(&mut self, dt: f32) {
+    pub fn apply_pressure(&mut self) {
         let min_dist_center = self
             .particles
             .iter()
@@ -363,9 +362,16 @@ impl Polygon {
         let current_volume = std::f32::consts::PI * min_dist_center * max_dist_center;
         let current_pressure = (1.0 / current_volume) * self.volume * self.pressure;
 
-        for point in &mut self.particles {
-            let force = (point.pos - self.center).normalize() * current_pressure;
-            point.add_force_v2(force);
+        for i in 0..self.particles.len() {
+            let j = (i + 1) % self.particles.len();
+            let point1 = &self.particles[i];
+            let point2 = &self.particles[j];
+            let diff = point1.pos - point2.pos;
+            let dist = diff.magnitude();
+            let perp = Vector2::new(diff.y, -diff.x).normalize();
+            let force = perp * current_pressure * dist;
+            self.particles[i].add_force_v2(force);
+            self.particles[j].add_force_v2(force);
         }
     }
 
