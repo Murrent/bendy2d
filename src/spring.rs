@@ -10,7 +10,13 @@ pub struct Spring {
 }
 
 impl Spring {
-    pub fn new(particle_a: usize, particle_b: usize, rest_length: f32, stiffness: f32, permanence_threshold: f32) -> Self {
+    pub fn new(
+        particle_a: usize,
+        particle_b: usize,
+        rest_length: f32,
+        stiffness: f32,
+        permanence_threshold: f32,
+    ) -> Self {
         Self {
             particle_a,
             particle_b,
