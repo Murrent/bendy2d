@@ -232,7 +232,7 @@ impl Polygon {
                 let particle_a = &particles[a_id];
                 let particle_b = &particles[b_id];
                 let dist_vec = particle_a.pos - particle_b.pos;
-                particle_springs.push(Spring::new (
+                particle_springs.push(Spring::new(
                     a_id,
                     b_id,
                     dist_vec.magnitude(),
@@ -250,7 +250,7 @@ impl Polygon {
             let particle_a = &particles[a_id];
             let particle_c = &particles[c_id];
             let dist_vec = particle_a.pos - particle_c.pos;
-            particle_springs.push(Spring::new (
+            particle_springs.push(Spring::new(
                 a_id,
                 c_id,
                 dist_vec.magnitude(),
