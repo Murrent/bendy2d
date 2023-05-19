@@ -1,9 +1,13 @@
 [package]
 name = "bendy2d"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "A 2D softbody physics engine"
+repository = "https://github.com/Murrent/bendy2d"
+license = "MIT"
+readme = "README.md"
+keywords = ["physics", "2d", "softbody", "simulation", "game", "engine", "nalgebra"]
+categories = ["physics-engines"]
 
 [dependencies]
 nalgebra = "0.32.2"
