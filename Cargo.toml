@@ -8,6 +8,11 @@ license = "MIT"
 readme = "README.md"
 keywords = ["physics", "2d", "softbody", "simulation", "game", "engine", "nalgebra"]
 categories = ["physics-engines"]
+exclude = [
+    ".cargo_vcs_info.json",
+    ".gitignore",
+    "Cargo.toml.orig",
+]
 
 [dependencies]
 nalgebra = "0.32.2"
