@@ -36,7 +36,7 @@ pub struct Solver {
 impl Solver {
     pub fn new() -> Self {
         Self {
-            gravity: Vector2::new(0.0, 9.8),
+            gravity: Vector2::new(0.0, 98.0),
             bounds: Bounds {
                 pos: Vector2::new(0.0, 0.0),
                 size: Vector2::new(100.0, 100.0),
@@ -139,8 +139,8 @@ impl Solver {
         for polygon in self.polygons.iter_mut() {
             polygon.apply_pressure();
         }
-        self.apply_gravity();
         for _ in 0..self.sub_steps {
+            self.apply_gravity();
             self.apply_links();
             self.apply_springs(delta);
             self.solve_dynamic_collisions();
