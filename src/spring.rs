@@ -36,16 +36,17 @@ impl Spring {
         if delta_length == 0.0 {
             return;
         }
-        let delta_normal = delta / delta_length;
+        let delta_normal = delta.normalize();
 
-        let mut difference = (delta_length - self.rest_length) / delta_length;
+        let mut difference = (delta_length - self.rest_length) / self.rest_length;
         // Permanent deformation
         if difference < self.permanence_threshold {
-            //self.rest_length = delta_length;
-            //difference = (delta_length - self.rest_length) / delta_length;
+            self.rest_length = delta_length;
+            difference = (delta_length - self.rest_length) / self.rest_length;
         }
         let impulse = delta_normal * difference * self.stiffness;
 
+        // TODO: Make this use the add_force method instead of directly modifying the velocity to account for mass
         particle_a.pos += impulse * dt;
         particle_b.pos -= impulse * dt;
     }
