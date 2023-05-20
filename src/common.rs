@@ -34,9 +34,9 @@ pub fn proj_a_on_b(a: Vector2<f32>, b: Vector2<f32>) -> Vector2<f32> {
 #[inline]
 pub fn proj_a_on_b_clamped(a: Vector2<f32>, b: Vector2<f32>) -> Vector2<f32> {
     let proj = proj_a_on_b(a, b);
-    if proj.xy() > b.xy() {
+    if proj.magnitude_squared() > b.magnitude_squared() {
         b
-    } else if proj.xy() < Vector2::zeros() {
+    } else if proj.magnitude_squared() < 0.0 {
         Vector2::zeros()
     } else {
         proj
