@@ -41,8 +41,8 @@ impl Spring {
         let mut difference = (delta_length - self.rest_length) / delta_length;
         // Permanent deformation
         if difference < self.permanence_threshold {
-            self.rest_length = delta_length;
-            difference = (delta_length - self.rest_length) / delta_length;
+            //self.rest_length = delta_length;
+            //difference = (delta_length - self.rest_length) / delta_length;
         }
         let impulse = delta_normal * difference * self.stiffness;
 
