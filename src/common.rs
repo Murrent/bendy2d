@@ -13,7 +13,7 @@ pub fn line_intersection(
     let s2_x = p4.x - p3.x;
     let s2_y = p4.y - p3.y;
 
-    let s = (-s1_y * (p1.x - p3.x) + s1_x * (p1.y - p3.y)) / (-s2_x * s1_y + s1_x * s2_y);
+    let s = (s1_x * (p1.y - p3.y) - s1_y * (p1.x - p3.x)) / (-s2_x * s1_y + s1_x * s2_y);
     let t = (s2_x * (p1.y - p3.y) - s2_y * (p1.x - p3.x)) / (-s2_x * s1_y + s1_x * s2_y);
 
     if s >= 0.0 && s <= 1.0 && t >= 0.0 && t <= 1.0 {
