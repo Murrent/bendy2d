@@ -32,7 +32,7 @@ impl Particle {
         let vel = self.pos - self.prev_pos;
         self.prev_pos = self.pos;
         let mut total_vel = vel + self.acc * dt * dt;
-        total_vel *= self.damping.powf(dt);
+        //total_vel *= self.damping.powf(dt);
         // if total_vel.magnitude() > 2.0 {
         //     total_vel = total_vel.normalize() * 2.0;
         // }
