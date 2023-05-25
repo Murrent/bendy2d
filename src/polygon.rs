@@ -434,12 +434,6 @@ impl Polygon {
 
         // The line normal
         let line_normalized = (point_b.pos - point_a.pos).normalize();
-        // The center point projected onto the line
-        let center_proj = (line_normalized.dot(&(self.center - intersection))
-            / line_normalized.dot(&line_normalized))
-            * line_normalized;
-        // The normal, inward facing from the line
-        let normal_in = (self.center - (intersection + center_proj)).normalize();
         // We project the current position of the point onto the normal
         let point_proj = (line_normalized.dot(&(others_point.pos - intersection))
             / line_normalized.dot(&line_normalized))
