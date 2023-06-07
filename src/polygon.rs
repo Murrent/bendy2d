@@ -435,9 +435,8 @@ impl Polygon {
         // The line normal
         let line_normalized = (point_b.pos - point_a.pos).normalize();
         // We project the current position of the point onto the normal
-        let point_proj = (line_normalized.dot(&(others_point.pos - intersection))
-            / line_normalized.dot(&line_normalized))
-            * line_normalized;
+        let point_proj = proj_a_on_b(others_point.pos - intersection, line_normalized);
+
         let real_intersection = intersection + point_proj;
         // We calculate the distance from the intersection point to a and b
         let dist_to_a = (real_intersection - point_a.pos).magnitude();
@@ -453,12 +452,12 @@ impl Polygon {
         let total_displacement =
             pen_vector / (others_point.inv_mass + point_a.inv_mass + point_b.inv_mass);
         // A third of the displacement
-        let displace_point = total_displacement * (point_a.inv_mass + point_b.inv_mass);
+        let displace_point = total_displacement * others_point.inv_mass;
         // The displacement total for the line
-        let displace_line = -total_displacement * others_point.inv_mass;
+        let displace_line = -total_displacement * (point_a.inv_mass + point_b.inv_mass);
 
         // // TEST!
-        let qp_delta = -displace_point;
+        let qp_delta = displace_line;
         let c_delta = (influence_a * influence_a + influence_b * influence_b);
         let delta_squared = qp_delta.dot(&qp_delta);
         let bottom = c_delta * delta_squared;
