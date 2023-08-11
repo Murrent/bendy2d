@@ -408,16 +408,53 @@ impl Polygon {
     }
     //----------------------------------------------------------------------------------------------
     pub fn solve_polygon_single(&mut self, other: &mut Polygon) {
-        for a_id in 0..self.particles.len() {
-            let point_a = self.particles[a_id];
-            let b_id = (a_id + 1) % self.particles.len();
-            let point_b = self.particles[b_id];
-            for others_point in &mut other.particles {
-                let result =
-                    line_intersection((point_a.pos, point_b.pos), (others_point.pos, other.center));
-                if let Some(intersection) = result {
-                    self.resolve_line_intersection(intersection, a_id, b_id, others_point);
+        // for a_id in 0..self.particles.len() {
+        //     let point_a = self.particles[a_id];
+        //     let b_id = (a_id + 1) % self.particles.len();
+        //     let point_b = self.particles[b_id];
+        //     for others_point in &mut other.particles {
+        //         let result =
+        //             line_intersection((point_a.pos, point_b.pos), (others_point.pos, other.center));
+        //         if let Some(intersection) = result {
+        //             self.resolve_line_intersection(intersection, a_id, b_id, others_point);
+        //         }
+        //     }
+        // }
+
+
+        for point in  &mut other.particles {
+            //let point = &self.particles[i];
+            let mut is_inside = false;
+            let mut closest_point: Vector2<f32> = Vector2::new(f32::INFINITY, f32::INFINITY);
+            let mut shortest_dist: f32 = f32::INFINITY;
+            let mut collision_line = (0, 0);
+
+            let particle_count = self.particles.len();
+            let (mut k, mut j) = (particle_count - 1, 0);
+            while j < particle_count {
+                let particle_a = &self.particles[j];
+                let particle_b = &self.particles[k];
+                if line_intersection(
+                    (point.pos, Vector2::new(0.0, 0.0)),
+                    (particle_a.pos, particle_b.pos),
+                ).is_some() {
+                    is_inside = !is_inside;
                 }
+
+                let projection = proj_point_on_line(point.pos, (particle_a.pos, particle_b.pos));
+                let dist = (projection - point.pos).magnitude();
+                if dist < shortest_dist {
+                    closest_point = projection;
+                    shortest_dist = dist;
+                    collision_line = (j, k);
+                }
+
+                k = j;
+                j += 1;
+            }
+
+            if is_inside {
+                self.resolve_line_intersection(closest_point, collision_line.0, collision_line.1, point);
             }
         }
     }
